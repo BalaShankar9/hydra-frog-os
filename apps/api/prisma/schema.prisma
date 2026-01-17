@@ -114,34 +114,65 @@ model CrawlRun {
   pages                Page[]
   links                Link[]
   issues               Issue[]
+  templates            Template[]
   
   @@index([projectId, createdAt])
 }
 
+// ============================================
+// PHASE 2A: Template Clustering
+// ============================================
+
+model Template {
+  id                 String   @id @default(cuid())
+  crawlRunId         String
+  name               String
+  signatureHash      String
+  signatureJson      Json?
+  samplePageId       String?
+  pageCount          Int      @default(0)
+  createdAt          DateTime @default(now())
+
+  // Relations
+  crawlRun           CrawlRun @relation(fields: [crawlRunId], references: [id], onDelete: Cascade)
+  pages              Page[]
+
+  @@index([crawlRunId])
+  @@unique([crawlRunId, signatureHash])
+}
+
 model Page {
-  id              String   @id @default(cuid())
-  crawlRunId      String
-  url             String
-  normalizedUrl   String
-  statusCode      Int?
-  contentType     String?
-  title           String?
-  metaDescription String?
-  h1Count         Int?
-  canonical       String?
-  robotsMeta      String?
-  wordCount       Int?
-  htmlHash        String?
-  redirectChainJson Json?
-  discoveredAt    DateTime @default(now())
+  id                    String    @id @default(cuid())
+  crawlRunId            String
+  url                   String
+  normalizedUrl         String
+  statusCode            Int?
+  contentType           String?
+  title                 String?
+  metaDescription       String?
+  h1Count               Int?
+  canonical             String?
+  robotsMeta            String?
+  wordCount             Int?
+  htmlHash              String?
+  redirectChainJson     Json?
+  discoveredAt          DateTime  @default(now())
+  
+  // Phase 2A: Template clustering fields
+  templateSignatureHash String?
+  templateSignatureJson Json?
+  templateId            String?
   
   // Relations
-  crawlRun        CrawlRun @relation(fields: [crawlRunId], references: [id], onDelete: Cascade)
-  linksFrom       Link[]   @relation("FromPage")
-  issues          Issue[]
+  crawlRun              CrawlRun  @relation(fields: [crawlRunId], references: [id], onDelete: Cascade)
+  template              Template? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  linksFrom             Link[]    @relation("FromPage")
+  issues                Issue[]
   
   @@unique([crawlRunId, normalizedUrl])
   @@index([crawlRunId, normalizedUrl])
+  @@index([crawlRunId, templateSignatureHash])
+  @@index([crawlRunId, templateId])
 }
 
 model Link {
