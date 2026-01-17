@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum OrgRole {
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum CrawlRunStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+  CANCELED
+}
+
+enum IssueSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum LinkType {
+  INTERNAL
+  EXTERNAL
+}
+
+enum ScheduleFrequency {
+  DAILY
+  WEEKLY
+  MANUAL
+}
+
+// ============================================
+// MODELS
+// ============================================
+
+model User {
+  id           String      @id @default(cuid())
+  email        String      @unique
+  passwordHash String
+  createdAt    DateTime    @default(now())
+  
+  // Relations
+  orgMembers   OrgMember[]
+}
+
+model Org {
+  id        String      @id @default(cuid())
+  name      String
+  createdAt DateTime    @default(now())
+  
+  // Relations
+  members   OrgMember[]
+  projects  Project[]
+}
+
+model OrgMember {
+  id        String   @id @default(cuid())
+  orgId     String
+  userId    String
+  role      OrgRole
+  createdAt DateTime @default(now())
+  
+  // Relations
+  org       Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([orgId, userId])
+}
+
+model Project {
+  id           String         @id @default(cuid())
+  orgId        String
+  name         String
+  domain       String
+  startUrl     String
+  settingsJson Json           @default("{}")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  
+  // Relations
+  org          Org            @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  crawlRuns    CrawlRun[]
+  schedule     CrawlSchedule?
+  
+  @@index([orgId])
+}
+
+model CrawlRun {
+  id                   String         @id @default(cuid())
+  projectId            String
+  status               CrawlRunStatus @default(QUEUED)
+  startedAt            DateTime?
+  finishedAt           DateTime?
+  settingsSnapshotJson Json           @default("{}")
+  totalsJson           Json           @default("{}")
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  
+  // Relations
+  project              Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  pages                Page[]
+  links                Link[]
+  issues               Issue[]
+  
+  @@index([projectId, createdAt])
+}
+
+model Page {
+  id              String   @id @default(cuid())
+  crawlRunId      String
+  url             String
+  normalizedUrl   String
+  statusCode      Int?
+  contentType     String?
+  title           String?
+  metaDescription String?
+  h1Count         Int?
+  canonical       String?
+  robotsMeta      String?
+  wordCount       Int?
+  htmlHash        String?
+  redirectChainJson Json?
+  discoveredAt    DateTime @default(now())
+  
+  // Relations
+  crawlRun        CrawlRun @relation(fields: [crawlRunId], references: [id], onDelete: Cascade)
+  linksFrom       Link[]   @relation("FromPage")
+  issues          Issue[]
+  
+  @@unique([crawlRunId, normalizedUrl])
+  @@index([crawlRunId, normalizedUrl])
+}
+
+model Link {
+  id              String   @id @default(cuid())
+  crawlRunId      String
+  fromPageId      String?
+  toUrl           String
+  toNormalizedUrl String
+  linkType        LinkType
+  isBroken        Boolean  @default(false)
+  statusCode      Int?
+  createdAt       DateTime @default(now())
+  
+  // Relations
+  crawlRun        CrawlRun @relation(fields: [crawlRunId], references: [id], onDelete: Cascade)
+  fromPage        Page?    @relation("FromPage", fields: [fromPageId], references: [id], onDelete: SetNull)
+  
+  @@index([crawlRunId, toNormalizedUrl])
+}
+
+model Issue {
+  id             String        @id @default(cuid())
+  crawlRunId     String
+  pageId         String?
+  type           String
+  severity       IssueSeverity
+  title          String
+  description    String
+  recommendation String
+  evidenceJson   Json?
+  createdAt      DateTime      @default(now())
+  
+  // Relations
+  crawlRun       CrawlRun      @relation(fields: [crawlRunId], references: [id], onDelete: Cascade)
+  page           Page?         @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  
+  @@index([crawlRunId, type])
+  @@index([crawlRunId, severity])
+}
+
+model CrawlSchedule {
+  id        String            @id @default(cuid())
+  projectId String            @unique
+  frequency ScheduleFrequency
+  enabled   Boolean           @default(false)
+  lastRunAt DateTime?
+  nextRunAt DateTime?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  
+  // Relations
+  project   Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}

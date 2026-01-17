@@ -1,0 +1,43 @@
+{
+  "name": "@hydra-frog-os/crawler",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "clean": "rm -rf dist",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "jest",
+    "db:generate": "prisma generate --schema ../../apps/api/prisma/schema.prisma"
+  },
+  "dependencies": {
+    "@hydra-frog-os/shared": "workspace:*",
+    "@prisma/adapter-pg": "^7.2.0",
+    "@prisma/client": "^7.2.0",
+    "bullmq": "^5.66.5",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.4.7",
+    "ioredis": "^5.4.1",
+    "p-limit": "^6.2.0",
+    "pg": "^8.16.0",
+    "undici": "^7.9.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.11.0",
+    "@types/pg": "^8.16.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "jest": "^29.7.0",
+    "prisma": "^7.2.0",
+    "ts-jest": "^29.1.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
+  }
+}
