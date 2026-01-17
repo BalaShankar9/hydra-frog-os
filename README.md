@@ -1,162 +1,209 @@
-# Hydra Frog OS
+# 🐸 HYDRA FROG OS
 
-A production-grade TypeScript monorepo using Turborepo + pnpm, designed for SaaS applications with workers.
+**Cloud-native SEO crawler and technical audit platform** — Screaming Frog meets enterprise automation.
 
-## Structure
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
+[![NestJS](https://img.shields.io/badge/NestJS-10.x-red)](https://nestjs.com/)
+[![Next.js](https://img.shields.io/badge/Next.js-14.x-black)](https://nextjs.org/)
 
-```
+---
+
+## 🚀 What is HYDRA FROG OS?
+
+HYDRA FROG OS is an **open-source, cloud-native website crawler** designed for SEO professionals, agencies, and enterprises. It provides:
+
+- **Automated technical SEO audits** at scale
+- **Scheduled crawls** with cron-based automation
+- **Real-time issue detection** (missing titles, broken links, redirect chains, etc.)
+- **Multi-tenant architecture** for agencies managing multiple clients
+- **Modern dashboard** with exportable reports
+
+Think of it as **Screaming Frog + Sitebulb + automation**, built for the cloud.
+
+---
+
+## ✨ Core Features (Phase 1 Complete)
+
+| Feature | Status |
+|---------|--------|
+| 🔐 JWT Authentication | ✅ |
+| 🏢 Multi-tenant Organizations | ✅ |
+| 📁 Projects & Domains | ✅ |
+| 🕷️ Distributed Crawler (BullMQ + Redis) | ✅ |
+| 📊 SEO Issue Detection (15+ rules) | ✅ |
+| 📈 Dashboard with Data Tables | ✅ |
+| 🔗 Redirect & Broken Link Tracking | ✅ |
+| ⏰ Scheduled Crawls (Cron) | ✅ |
+| 📤 CSV Export | ✅ |
+| 🩺 Health Monitoring | ✅ |
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Monorepo** | Turborepo 2.x + pnpm 9.x |
+| **API** | NestJS 10.x, Prisma 7.x, PostgreSQL |
+| **Dashboard** | Next.js 14.x (App Router), Tailwind CSS |
+| **Crawler Worker** | Node.js, Cheerio, BullMQ |
+| **Queue** | Redis + BullMQ |
+| **Infrastructure** | Docker Compose (local), ready for K8s |
+
+---
+
+## 📁 Monorepo Structure
+
+\`\`\`
 hydra-frog-os/
-  apps/
-    api/              # NestJS REST API
-    dashboard/        # Next.js + Tailwind dashboard
-  workers/
-    crawler/          # Node.js TypeScript worker
-  packages/
-    shared/           # Shared types, helpers, constants
-  infra/
-    docker-compose.yml  # Postgres + Redis
-```
+├── apps/
+│   ├── api/              # NestJS REST API (port 3001)
+│   └── dashboard/        # Next.js frontend (port 3000)
+├── workers/
+│   └── crawler/          # BullMQ crawler worker
+├── packages/
+│   └── shared/           # Shared types, constants, issue rules
+├── infra/
+│   └── docker-compose.yml
+├── turbo.json
+└── pnpm-workspace.yaml
+\`\`\`
 
-## Prerequisites
+---
 
-- Node.js >= 20.0.0
-- pnpm >= 9.0.0
-- Docker and Docker Compose
+## 🏃 Quick Start
 
-## Quick Start
+### Prerequisites
 
-### 1. Install dependencies
+- **Node.js** 20.x+
+- **pnpm** 9.x (\`npm install -g pnpm\`)
+- **Docker** & Docker Compose
 
-```bash
+### 1. Clone & Install
+
+\`\`\`bash
+git clone https://github.com/BalaShankar9/hydra-frog-os.git
+cd hydra-frog-os
 pnpm install
-```
+\`\`\`
 
-### 2. Set up environment
+### 2. Start Infrastructure
 
-```bash
+\`\`\`bash
+cd infra
+docker compose up -d
+\`\`\`
+
+This starts:
+- **PostgreSQL** on port 5432
+- **Redis** on port 6379
+
+### 3. Setup Database
+
+\`\`\`bash
+cd apps/api
 cp .env.example .env
-```
+pnpm prisma migrate deploy
+pnpm prisma db seed
+\`\`\`
 
-### 3. Start infrastructure
+### 4. Run Services
 
-```bash
-pnpm docker:up
-```
+Open 3 terminals:
 
-### 4. Build all packages
+\`\`\`bash
+# Terminal 1: API Server
+pnpm --filter api dev
+# → http://localhost:3001
 
-```bash
-pnpm build
-```
+# Terminal 2: Dashboard
+pnpm --filter dashboard dev
+# → http://localhost:3000
 
-### 5. Start development servers
+# Terminal 3: Crawler Worker
+pnpm --filter crawler dev
+\`\`\`
 
-```bash
-pnpm dev
-```
+### 5. Login
 
-## Available Scripts
+- **URL:** http://localhost:3000/login
+- **Email:** \`demo@hydra.local\`
+- **Password:** \`password123\`
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start all apps in development mode |
-| `pnpm build` | Build all packages and apps |
-| `pnpm test` | Run tests across all packages |
-| `pnpm lint` | Lint all packages |
-| `pnpm lint:fix` | Fix lint issues |
-| `pnpm format` | Format code with Prettier |
-| `pnpm format:check` | Check code formatting |
-| `pnpm typecheck` | Run TypeScript type checking |
-| `pnpm clean` | Clean all build outputs |
-| `pnpm docker:up` | Start Postgres + Redis |
-| `pnpm docker:down` | Stop Postgres + Redis |
-| `pnpm docker:logs` | View Docker logs |
+---
 
-## Apps
+## 🔗 Useful Links
 
-### API (NestJS)
+| Resource | URL |
+|----------|-----|
+| Dashboard | http://localhost:3000 |
+| API Swagger Docs | http://localhost:3001/docs |
+| API Health | http://localhost:3001/health |
+| Queue Health | http://localhost:3001/health/queue |
 
-- **Port**: 3001
-- **Path**: `apps/api`
-- **Endpoints**:
-  - `GET /` - Welcome message
-  - `GET /health` - Health check
+---
 
-```bash
-# Run API only
-pnpm --filter @hydra-frog-os/api dev
-```
+## 🧪 Testing
 
-### Dashboard (Next.js)
+\`\`\`bash
+# Run all tests
+pnpm test
 
-- **Port**: 3000
-- **Path**: `apps/dashboard`
+# Run API tests
+pnpm --filter api test
 
-```bash
-# Run dashboard only
-pnpm --filter @hydra-frog-os/dashboard dev
-```
+# Type check
+pnpm --filter dashboard tsc --noEmit
+\`\`\`
 
-## Workers
+---
 
-### Crawler
+## 📋 Roadmap
 
-- **Path**: `workers/crawler`
-- **Description**: Background worker for crawling tasks
+### Phase 2 (In Progress)
+- [ ] Real-time crawl progress via WebSockets
+- [ ] Page speed metrics (Core Web Vitals)
+- [ ] JavaScript rendering support (Puppeteer)
+- [ ] Sitemap.xml generation
+- [ ] PDF report exports
 
-```bash
-# Run crawler worker
-pnpm --filter @hydra-frog-os/crawler dev
-```
+### Phase 3 (Planned)
+- [ ] AI-powered SEO recommendations
+- [ ] Competitor analysis
+- [ ] Historical trend tracking
+- [ ] White-label support
+- [ ] Slack/Discord integrations
 
-## Packages
+### Phase 4 (Future)
+- [ ] Kubernetes deployment (Helm charts)
+- [ ] Multi-region crawling
+- [ ] Enterprise SSO (SAML/OIDC)
+- [ ] Billing & subscriptions
 
-### Shared
+---
 
-- **Path**: `packages/shared`
-- **Exports**:
-  - `@hydra-frog-os/shared` - All exports
-  - `@hydra-frog-os/shared/types` - Type definitions
-  - `@hydra-frog-os/shared/helpers` - Utility functions
-  - `@hydra-frog-os/shared/constants` - Constants
+## 🤝 Contributing
 
-## Infrastructure
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-### Docker Services
+---
 
-| Service | Port | Image |
-|---------|------|-------|
-| PostgreSQL | 5432 | postgres:15-alpine |
-| Redis | 6379 | redis:7-alpine |
+## 📄 License
 
-Both services include health checks and persistent volumes.
+This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details.
 
-## TypeScript Path Aliases
+---
 
-All packages support the following path aliases:
+## 🙏 Acknowledgments
 
-- `@/*` - Source directory
-- `@hydra-frog-os/shared` - Shared package
+Built with ❤️ by the HYDRA FROG team.
 
-## Development Workflow
+Inspired by:
+- [Screaming Frog](https://www.screamingfrog.co.uk/)
+- [Sitebulb](https://sitebulb.com/)
+- [Ahrefs](https://ahrefs.com/)
 
-1. Make changes to shared package
-2. Turborepo automatically rebuilds dependencies
-3. Dependent apps hot-reload with changes
+---
 
-## Adding New Packages
-
-1. Create directory in `apps/`, `workers/`, or `packages/`
-2. Add `package.json` with workspace dependency:
-   ```json
-   {
-     "dependencies": {
-       "@hydra-frog-os/shared": "workspace:*"
-     }
-   }
-   ```
-3. Run `pnpm install`
-
-## License
-
-Private - All rights reserved
+**Star ⭐ this repo if you find it useful!**
