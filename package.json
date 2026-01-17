@@ -8,6 +8,11 @@
   },
   "scripts": {
     "dev": "turbo run dev",
+    "dev:infra": "docker compose -f infra/docker-compose.yml up -d",
+    "dev:api": "pnpm --filter api dev",
+    "dev:dash": "pnpm --filter dashboard dev",
+    "dev:crawler": "pnpm --filter crawler dev",
+    "dev:all": "concurrently -n api,dash,crawler -c blue,green,yellow \"pnpm dev:api\" \"pnpm dev:dash\" \"pnpm dev:crawler\"",
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",
@@ -23,6 +28,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
+    "concurrently": "^9.2.1",
     "eslint": "^8.57.0",
     "prettier": "^3.2.0",
     "turbo": "^2.0.0",

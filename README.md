@@ -91,8 +91,7 @@ pnpm install
 ### 2. Start Infrastructure
 
 \`\`\`bash
-cd infra
-docker compose up -d
+pnpm dev:infra
 \`\`\`
 
 This starts:
@@ -108,21 +107,20 @@ pnpm prisma migrate deploy
 pnpm prisma db seed
 \`\`\`
 
-### 4. Run Services
-
-Open 3 terminals:
+### 4. Start Everything (One Command! 🚀)
 
 \`\`\`bash
-# Terminal 1: API Server
-pnpm --filter api dev
-# → http://localhost:3001
+pnpm dev:all
+\`\`\`
 
-# Terminal 2: Dashboard
-pnpm --filter dashboard dev
-# → http://localhost:3000
+This runs API, Dashboard, and Crawler Worker concurrently with color-coded output.
 
-# Terminal 3: Crawler Worker
-pnpm --filter crawler dev
+**Or run services individually:**
+
+\`\`\`bash
+pnpm dev:api      # API Server → http://localhost:3001
+pnpm dev:dash     # Dashboard  → http://localhost:3000
+pnpm dev:crawler  # Crawler Worker
 \`\`\`
 
 ### 5. Login
@@ -130,6 +128,22 @@ pnpm --filter crawler dev
 - **URL:** http://localhost:3000/login
 - **Email:** \`demo@hydra.local\`
 - **Password:** \`password123\`
+
+---
+
+## 📜 Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| \`pnpm dev:all\` | Start API + Dashboard + Crawler (concurrently) |
+| \`pnpm dev:infra\` | Start PostgreSQL + Redis (Docker) |
+| \`pnpm dev:api\` | Start API server only |
+| \`pnpm dev:dash\` | Start Dashboard only |
+| \`pnpm dev:crawler\` | Start Crawler worker only |
+| \`pnpm build\` | Build all packages |
+| \`pnpm test\` | Run all tests |
+| \`pnpm lint\` | Lint all packages |
+| \`pnpm docker:down\` | Stop infrastructure |
 
 ---
 
@@ -159,7 +173,7 @@ pnpm --filter dashboard tsc --noEmit
 
 ---
 
-## 📋 Roadmap
+## �� Roadmap
 
 ### Phase 2 (In Progress)
 - [ ] Real-time crawl progress via WebSockets
