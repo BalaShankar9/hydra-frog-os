@@ -54,6 +54,8 @@ export interface PageResult {
   links: string[];
   imagesMissingAlt: number;
   error: string | null;
+  /** Raw HTML content for template signature computation */
+  html: string | null;
 }
 
 /**

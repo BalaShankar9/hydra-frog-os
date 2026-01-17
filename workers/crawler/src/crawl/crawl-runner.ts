@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../prisma.js';
 import { logger } from '../logger.js';
 import { buildCrawlSettings, type CrawlSettings, type QueueItem, type PageResult } from '../types.js';
@@ -7,6 +8,7 @@ import { postProcessCrawl, saveCrawlTotals } from './post-processor.js';
 import { generateGlobalIssues } from './global-issues.js';
 import { computeIssueSummary, saveIssueSummary } from './issue-summary.js';
 import { evaluatePageIssues, type IssueDraft } from '@hydra-frog-os/shared/issues';
+import { computeTemplateSignature } from '../templates/computeTemplateSignature.js';
 
 /**
  * Placeholder for fetching and parsing a page.
@@ -29,6 +31,7 @@ async function fetchAndParsePage(url: string): Promise<PageResult> {
     links: [],
     imagesMissingAlt: 0,
     error: null,
+    html: null,
   };
 }
 
@@ -49,6 +52,39 @@ async function isCrawlCanceled(crawlRunId: string): Promise<boolean> {
   });
 
   return crawlRun?.status === 'CANCELED';
+}
+
+/**
+ * Compute template signature for HTML pages
+ * Returns null/DbNull fields if not applicable or on error
+ */
+function computePageTemplateSignature(result: PageResult): {
+  templateSignatureHash: string | null;
+  templateSignatureJson: Prisma.InputJsonValue | typeof Prisma.DbNull;
+} {
+  // Only compute for HTML pages with content
+  if (!result.html || !result.contentType?.includes('text/html')) {
+    return { templateSignatureHash: null, templateSignatureJson: Prisma.DbNull };
+  }
+
+  try {
+    const signature = computeTemplateSignature(result.html);
+    if (signature) {
+      // Convert to plain JSON for Prisma compatibility
+      const jsonValue = JSON.parse(JSON.stringify(signature.signatureJson));
+      return {
+        templateSignatureHash: signature.signatureHash,
+        templateSignatureJson: jsonValue as Prisma.InputJsonValue,
+      };
+    }
+  } catch (error) {
+    logger.warn('Failed to compute template signature', {
+      url: result.url,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  return { templateSignatureHash: null, templateSignatureJson: Prisma.DbNull };
 }
 
 /**
@@ -187,7 +223,10 @@ export async function runCrawl({
         continue;
       }
 
-      // Create Page record in database
+      // Compute template signature for HTML pages
+      const { templateSignatureHash, templateSignatureJson } = computePageTemplateSignature(result);
+
+      // Create Page record in database with template signature
       const page = await prisma.page.create({
         data: {
           crawlRunId,
@@ -201,10 +240,16 @@ export async function runCrawl({
           canonical: result.canonical,
           robotsMeta: result.robotsMeta,
           wordCount: result.wordCount,
+          templateSignatureHash,
+          templateSignatureJson,
         },
       });
 
-      logger.debug('Page created', { pageId: page.id, url: normalizedUrl });
+      logger.debug('Page created', { 
+        pageId: page.id, 
+        url: normalizedUrl,
+        hasTemplateSignature: !!templateSignatureHash,
+      });
 
       // Evaluate page-level issues (only if we have a valid status code)
       if (result.statusCode !== null) {
