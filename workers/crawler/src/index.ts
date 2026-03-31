@@ -3,6 +3,8 @@ import { Worker, Job } from 'bullmq';
 import { prisma, disconnectPrisma } from './prisma.js';
 import { logger } from './logger.js';
 import { runCrawl } from './crawl/crawl-runner.js';
+import { computeCrawlDiff } from './diff/computeCrawlDiff.js';
+import { enqueueRenderJobs, closeRenderQueue } from './render/index.js';
 
 // Queue and job types
 const QUEUE_NAME = 'crawl-jobs';
@@ -26,6 +28,160 @@ const connectionOptions = {
 
 // Concurrency setting
 const concurrency = parseInt(process.env.WORKER_CONCURRENCY || '1', 10);
+
+/**
+ * Find the previous completed crawl run for a project
+ */
+async function findPreviousCompletedRun(
+  projectId: string,
+  currentRunId: string
+): Promise<{ id: string } | null> {
+  return prisma.crawlRun.findFirst({
+    where: {
+      projectId,
+      status: 'DONE',
+      id: { not: currentRunId },
+    },
+    orderBy: { finishedAt: 'desc' },
+    select: { id: true },
+  });
+}
+
+/**
+ * Enqueue render jobs after crawl completes
+ * Updates totalsJson with render stats
+ */
+async function enqueueRenderJobsAfterCrawl(
+  projectId: string,
+  crawlRunId: string,
+): Promise<void> {
+  logger.info('Enqueueing render jobs after crawl', {
+    projectId,
+    crawlRunId,
+  });
+
+  try {
+    const result = await enqueueRenderJobs(crawlRunId, projectId);
+
+    // Update totalsJson with render info
+    const currentRun = await prisma.crawlRun.findUnique({
+      where: { id: crawlRunId },
+      select: { totalsJson: true },
+    });
+
+    const existingTotals = (currentRun?.totalsJson as Record<string, unknown>) ?? {};
+
+    await prisma.crawlRun.update({
+      where: { id: crawlRunId },
+      data: {
+        totalsJson: {
+          ...existingTotals,
+          renderMode: result.renderMode,
+          renderQueuedCount: result.queuedCount,
+        },
+      },
+    });
+
+    logger.info('Render jobs enqueued', {
+      projectId,
+      crawlRunId,
+      renderMode: result.renderMode,
+      queuedCount: result.queuedCount,
+    });
+  } catch (error) {
+    // Log error but don't fail the job - rendering is supplementary
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Failed to enqueue render jobs', {
+      projectId,
+      crawlRunId,
+      error: errorMessage,
+    });
+  }
+}
+
+/**
+ * Compute diff between previous and current crawl runs
+ * Updates the current run's totalsJson with diff summary
+ */
+async function computeDiffAfterCrawl(
+  projectId: string,
+  currentRunId: string
+): Promise<void> {
+  logger.info('Looking for previous completed run to compute diff', {
+    projectId,
+    currentRunId,
+  });
+
+  const previousRun = await findPreviousCompletedRun(projectId, currentRunId);
+
+  if (!previousRun) {
+    logger.info('No previous completed run found, skipping diff', {
+      projectId,
+      currentRunId,
+    });
+    return;
+  }
+
+  logger.info('Computing diff with previous run', {
+    projectId,
+    fromRunId: previousRun.id,
+    toRunId: currentRunId,
+  });
+
+  try {
+    const { diffId } = await computeCrawlDiff({
+      projectId,
+      fromRunId: previousRun.id,
+      toRunId: currentRunId,
+    });
+
+    // Fetch the diff summary to update totalsJson
+    const diff = await prisma.crawlDiff.findUnique({
+      where: { id: diffId },
+      select: { summaryJson: true },
+    });
+
+    const summaryJson = diff?.summaryJson as Record<string, unknown> | null;
+
+    // Update current run's totalsJson with diff info
+    const currentRun = await prisma.crawlRun.findUnique({
+      where: { id: currentRunId },
+      select: { totalsJson: true },
+    });
+
+    const existingTotals = (currentRun?.totalsJson as Record<string, unknown>) ?? {};
+
+    await prisma.crawlRun.update({
+      where: { id: currentRunId },
+      data: {
+        totalsJson: {
+          ...existingTotals,
+          diffId,
+          diffSummary: {
+            regressions: summaryJson?.regressions ?? 0,
+            improvements: summaryJson?.improvements ?? 0,
+            criticalRegressions: (summaryJson?.bySeverity as Record<string, number>)?.CRITICAL ?? 0,
+          },
+        },
+      },
+    });
+
+    logger.info('Diff computed and saved', {
+      projectId,
+      diffId,
+      regressions: summaryJson?.regressions,
+      improvements: summaryJson?.improvements,
+    });
+  } catch (error) {
+    // Log error but don't fail the job - diff is supplementary
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Failed to compute diff', {
+      projectId,
+      currentRunId,
+      error: errorMessage,
+    });
+  }
+}
 
 /**
  * Process a single crawl job
@@ -90,6 +246,13 @@ async function processJob(job: Job<CrawlJobData>): Promise<void> {
     });
 
     logger.info('CrawlRun completed successfully', { crawlRunId });
+
+    // Compute diff with previous run (non-blocking on errors)
+    await computeDiffAfterCrawl(projectId, crawlRunId);
+
+    // Enqueue render jobs based on project settings
+    await enqueueRenderJobsAfterCrawl(projectId, crawlRunId);
+
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -154,6 +317,7 @@ async function shutdown(signal: string): Promise<void> {
   logger.info('Received shutdown signal', { signal });
 
   await worker.close();
+  await closeRenderQueue();
   await disconnectPrisma();
 
   logger.info('Worker shutdown complete');
@@ -167,4 +331,3 @@ logger.info('Starting crawler worker...', {
   queue: QUEUE_NAME,
   concurrency,
 });
-

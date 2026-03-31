@@ -1,6 +1,8 @@
 import { Prisma } from '@prisma/client';
+import { Queue } from 'bullmq';
 import { prisma } from '../prisma.js';
 import { logger } from '../logger.js';
+import { config } from '../config.js';
 import { buildCrawlSettings, type CrawlSettings, type QueueItem, type PageResult } from '../types.js';
 import { normalizeUrl, resolveAndNormalize } from '../url/normalize.js';
 import { isInternalUrl } from '../url/isInternal.js';
@@ -9,6 +11,26 @@ import { generateGlobalIssues } from './global-issues.js';
 import { computeIssueSummary, saveIssueSummary } from './issue-summary.js';
 import { evaluatePageIssues, type IssueDraft } from '@hydra-frog-os/shared/issues';
 import { computeTemplateSignature } from '../templates/computeTemplateSignature.js';
+import { clusterTemplates, getTemplateStats, saveTemplateStats } from '../templates/clusterTemplates.js';
+import { enqueuePerfJobs } from '../perf/index.js';
+import { generateFixSuggestions } from '../fixes/index.js';
+
+// Create perf queue instance
+let perfQueue: Queue | null = null;
+
+function getPerfQueue(): Queue {
+  if (!perfQueue) {
+    perfQueue = new Queue('perf-jobs', {
+      connection: {
+        host: config.redis.host,
+        port: config.redis.port,
+        password: config.redis.password,
+        maxRetriesPerRequest: null,
+      },
+    });
+  }
+  return perfQueue;
+}
 
 /**
  * Placeholder for fetching and parsing a page.
@@ -335,6 +357,54 @@ export async function runCrawl({
   // Compute and save issue summary to totalsJson
   const issueSummary = await computeIssueSummary(crawlRunId);
   await saveIssueSummary(crawlRunId, issueSummary);
+
+  // Cluster pages into templates by signature hash
+  logger.info('Clustering pages into templates', { crawlRunId });
+  await clusterTemplates(crawlRunId);
+  const templateStats = await getTemplateStats(crawlRunId);
+  await saveTemplateStats(crawlRunId, templateStats);
+  logger.info('Template clustering complete', { crawlRunId, templateCount: templateStats.templateCount });
+
+  // Enqueue performance audit jobs (if enabled in project settings)
+  try {
+    const perfResult = await enqueuePerfJobs({
+      prisma,
+      perfQueue: getPerfQueue(),
+      crawlRunId,
+      projectId,
+    });
+    if (perfResult.skipped) {
+      logger.info('Performance audits skipped', { crawlRunId, reason: perfResult.reason });
+    } else {
+      logger.info('Performance audits enqueued', { crawlRunId, enqueuedCount: perfResult.enqueuedCount });
+    }
+  } catch (error) {
+    logger.error('Failed to enqueue performance audits', {
+      crawlRunId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    // Don't fail the crawl if perf enqueueing fails
+  }
+
+  // Generate fix suggestions based on issues, templates, and regressions
+  try {
+    const fixResult = await generateFixSuggestions({
+      prisma,
+      crawlRunId,
+      projectId,
+    });
+    logger.info('Fix suggestions generated', {
+      crawlRunId,
+      suggestionCount: fixResult.suggestionCount,
+      itemCount: fixResult.itemCount,
+    });
+  } catch (error) {
+    logger.error('Failed to generate fix suggestions', {
+      crawlRunId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    // Don't fail the crawl if fix suggestion generation fails
+  }
 
   logger.info('Crawl post-processing complete', { crawlRunId });
 }

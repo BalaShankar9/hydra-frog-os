@@ -10,6 +10,12 @@ import { ProjectModule } from './project';
 import { QueueModule } from './queue';
 import { CrawlModule } from './crawl';
 import { ScheduleModule } from './schedule';
+import { TemplatesModule } from './templates';
+import { DiffModule } from './diff';
+import { PerfModule } from './perf';
+import { FixesModule } from './fixes';
+import { StudioModule } from './studio';
+import { FlagModule } from './studio/flags';
 
 @Module({
   imports: [
@@ -24,6 +30,12 @@ import { ScheduleModule } from './schedule';
     ProjectModule,
     CrawlModule,
     ScheduleModule,
+    TemplatesModule,
+    DiffModule,
+    PerfModule,
+    FixesModule,
+    StudioModule,
+    FlagModule,
     HealthModule,
   ],
   controllers: [AppController],

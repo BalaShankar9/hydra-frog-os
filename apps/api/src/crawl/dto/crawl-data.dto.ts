@@ -41,6 +41,11 @@ export class ListPagesQueryDto extends PaginationDto {
   @Transform(({ value }) => value === 'true' ? true : value === 'false' ? false : undefined)
   @IsBoolean()
   hasIssues?: boolean;
+
+  @ApiPropertyOptional({ description: 'Filter by template ID' })
+  @IsOptional()
+  @IsString()
+  templateId?: string;
 }
 
 export class ListIssuesQueryDto extends PaginationDto {
@@ -276,4 +281,82 @@ export class PageDetailsResponseDto {
   @ApiProperty({ type: [IssueItemDto] }) issues!: IssueItemDto[];
   @ApiProperty({ type: [LinkItemDto] }) outgoingLinks!: LinkItemDto[];
   @ApiProperty({ type: [InlinkItemDto] }) inlinks!: InlinkItemDto[];
+}
+
+// ============================================
+// Render Summary Types
+// ============================================
+
+export interface RenderDonePage {
+  pageId: string;
+  url: string;
+  renderedTitle: string | null;
+  renderScreenshotPath: string | null;
+}
+
+export interface RenderSummaryResponse {
+  queued: number;
+  running: number;
+  done: number;
+  failed: number;
+  skipped: number;
+  donePages: RenderDonePage[];
+}
+
+// Swagger DTO classes
+class RenderDonePageDto {
+  @ApiProperty() pageId!: string;
+  @ApiProperty() url!: string;
+  @ApiProperty({ nullable: true }) renderedTitle!: string | null;
+  @ApiProperty({ nullable: true }) renderScreenshotPath!: string | null;
+}
+
+export class RenderSummaryResponseDto {
+  @ApiProperty() queued!: number;
+  @ApiProperty() running!: number;
+  @ApiProperty() done!: number;
+  @ApiProperty() failed!: number;
+  @ApiProperty() skipped!: number;
+  @ApiProperty({ type: [RenderDonePageDto] }) donePages!: RenderDonePageDto[];
+}
+
+// ============================================
+// Updated Page Details Response with Render Fields
+// ============================================
+
+export interface PageDetailsWithRenderResponse extends PageDetailsResponse {
+  // Render status and fields
+  renderStatus: string;
+  renderedFinalUrl: string | null;
+  renderedTitle: string | null;
+  renderedMetaDescription: string | null;
+  renderedCanonical: string | null;
+  renderedRobotsMeta: string | null;
+  renderedH1Count: number | null;
+  renderedWordCount: number | null;
+  renderedHtmlHash: string | null;
+  renderedLinksCount: number | null;
+  renderConsoleErrorsJson: unknown;
+  renderNetworkErrorsJson: unknown;
+  renderScreenshotPath: string | null;
+  renderStartedAt: Date | null;
+  renderFinishedAt: Date | null;
+}
+
+export class PageDetailsWithRenderResponseDto extends PageDetailsResponseDto {
+  @ApiProperty({ enum: ['SKIPPED', 'QUEUED', 'RUNNING', 'DONE', 'FAILED'] }) renderStatus!: string;
+  @ApiProperty({ nullable: true }) renderedFinalUrl!: string | null;
+  @ApiProperty({ nullable: true }) renderedTitle!: string | null;
+  @ApiProperty({ nullable: true }) renderedMetaDescription!: string | null;
+  @ApiProperty({ nullable: true }) renderedCanonical!: string | null;
+  @ApiProperty({ nullable: true }) renderedRobotsMeta!: string | null;
+  @ApiProperty({ nullable: true }) renderedH1Count!: number | null;
+  @ApiProperty({ nullable: true }) renderedWordCount!: number | null;
+  @ApiProperty({ nullable: true }) renderedHtmlHash!: string | null;
+  @ApiProperty({ nullable: true }) renderedLinksCount!: number | null;
+  @ApiProperty({ nullable: true }) renderConsoleErrorsJson!: unknown;
+  @ApiProperty({ nullable: true }) renderNetworkErrorsJson!: unknown;
+  @ApiProperty({ nullable: true }) renderScreenshotPath!: string | null;
+  @ApiProperty({ nullable: true }) renderStartedAt!: Date | null;
+  @ApiProperty({ nullable: true }) renderFinishedAt!: Date | null;
 }

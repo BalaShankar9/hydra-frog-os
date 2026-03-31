@@ -42,6 +42,118 @@ enum ScheduleFrequency {
   MANUAL
 }
 
+// Phase 2B: Crawl Diff enums
+enum DiffType {
+  NEW_URL
+  REMOVED_URL
+  STATUS_CHANGED
+  REDIRECT_CHAIN_CHANGED
+  TITLE_CHANGED
+  META_DESCRIPTION_CHANGED
+  CANONICAL_CHANGED
+  ROBOTS_CHANGED
+  H1_COUNT_CHANGED
+  WORDCOUNT_CHANGED
+  HTML_HASH_CHANGED
+  TEMPLATE_CHANGED
+  ISSUE_COUNT_CHANGED
+}
+
+enum DiffSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// Phase 2C: JS Rendering enum
+enum RenderStatus {
+  SKIPPED
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
+// Phase 2D: Performance Audit enums
+enum PerfAuditStatus {
+  SKIPPED
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
+enum PerfDevice {
+  MOBILE
+  DESKTOP
+}
+
+enum PerfRegressionSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// Phase 2E: Fix Suggestions enums
+enum FixStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+}
+
+enum FixType {
+  FIX_TITLE_DUPLICATES
+  FIX_MISSING_TITLES
+  FIX_META_DESCRIPTIONS
+  FIX_CANONICALS
+  FIX_H1_ISSUES
+  FIX_THIN_CONTENT
+  FIX_IMAGE_ALT
+  FIX_404_PAGES
+  FIX_REDIRECT_CHAINS
+  FIX_NOINDEX_ACCIDENTAL
+  FIX_LCP_REGRESSION
+  FIX_CLS_REGRESSION
+  FIX_INP_REGRESSION
+  FIX_UNUSED_JS
+  FIX_RENDER_BLOCKING
+  FIX_IMAGE_OPTIMIZATION
+}
+
+// Phase 3A: Marketing Experience Studio enums
+enum StudioRequestStatus {
+  IDEA
+  REVIEW
+  APPROVED
+  BUILDING
+  QA
+  SHIPPED
+  REJECTED
+}
+
+enum StudioRequestPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum FeatureFlagScope {
+  GLOBAL
+  ORG
+  PROJECT
+}
+
+// Phase 3B: Automated Build Run tracking
+enum BuildRunStatus {
+  QUEUED
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
 // ============================================
 // MODELS
 // ============================================
@@ -62,8 +174,11 @@ model Org {
   createdAt DateTime    @default(now())
   
   // Relations
-  members   OrgMember[]
-  projects  Project[]
+  members        OrgMember[]
+  projects       Project[]
+  studioRequests StudioRequest[]
+  toolSpecs      ToolSpec[]
+  buildRuns      BuildRun[]
 }
 
 model OrgMember {
@@ -94,6 +209,11 @@ model Project {
   org          Org            @relation(fields: [orgId], references: [id], onDelete: Cascade)
   crawlRuns    CrawlRun[]
   schedule     CrawlSchedule?
+  crawlDiffs   CrawlDiff[]
+  perfAudits   PerfAudit[]
+  perfBaselines PerfBaseline[]
+  perfRegressionItems PerfRegressionItem[]
+  fixSuggestions FixSuggestion[]
   
   @@index([orgId])
 }
@@ -115,6 +235,9 @@ model CrawlRun {
   links                Link[]
   issues               Issue[]
   templates            Template[]
+  perfAudits           PerfAudit[]
+  perfRegressionItems  PerfRegressionItem[]
+  fixSuggestions       FixSuggestion[]
   
   @@index([projectId, createdAt])
 }
@@ -136,6 +259,8 @@ model Template {
   // Relations
   crawlRun           CrawlRun @relation(fields: [crawlRunId], references: [id], onDelete: Cascade)
   pages              Page[]
+  perfAudits         PerfAudit[]
+  fixSuggestions     FixSuggestion[]
 
   @@index([crawlRunId])
   @@unique([crawlRunId, signatureHash])
@@ -163,16 +288,35 @@ model Page {
   templateSignatureJson Json?
   templateId            String?
   
+  // Phase 2C: JS Rendering fields
+  renderStatus            RenderStatus @default(SKIPPED)
+  renderedFinalUrl        String?
+  renderedTitle           String?
+  renderedMetaDescription String?
+  renderedCanonical       String?
+  renderedRobotsMeta      String?
+  renderedH1Count         Int?
+  renderedWordCount       Int?
+  renderedHtmlHash        String?
+  renderedLinksCount      Int?
+  renderConsoleErrorsJson Json?
+  renderNetworkErrorsJson Json?
+  renderScreenshotPath    String?
+  renderStartedAt         DateTime?
+  renderFinishedAt        DateTime?
+  
   // Relations
   crawlRun              CrawlRun  @relation(fields: [crawlRunId], references: [id], onDelete: Cascade)
   template              Template? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   linksFrom             Link[]    @relation("FromPage")
   issues                Issue[]
+  perfAudits            PerfAudit[]
   
   @@unique([crawlRunId, normalizedUrl])
   @@index([crawlRunId, normalizedUrl])
   @@index([crawlRunId, templateSignatureHash])
   @@index([crawlRunId, templateId])
+  @@index([crawlRunId, renderStatus])
 }
 
 model Link {
@@ -225,4 +369,278 @@ model CrawlSchedule {
   
   // Relations
   project   Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// PHASE 2B: Crawl Diff / Change Detection
+// ============================================
+
+model CrawlDiff {
+  id          String   @id @default(cuid())
+  projectId   String
+  fromRunId   String
+  toRunId     String
+  createdAt   DateTime @default(now())
+  summaryJson Json?
+
+  // Relations
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  items       CrawlDiffItem[]
+
+  @@unique([fromRunId, toRunId])
+  @@index([projectId, createdAt])
+}
+
+model CrawlDiffItem {
+  id            String       @id @default(cuid())
+  diffId        String
+  normalizedUrl String
+  url           String
+  type          DiffType
+  severity      DiffSeverity
+  direction     String       // "REGRESSION" | "IMPROVEMENT" | "NEUTRAL"
+  beforeJson    Json?
+  afterJson     Json?
+  createdAt     DateTime     @default(now())
+
+  // Relations
+  diff          CrawlDiff    @relation(fields: [diffId], references: [id], onDelete: Cascade)
+
+  @@index([diffId, type])
+  @@index([diffId, severity])
+  @@index([diffId, normalizedUrl])
+}
+
+// ============================================
+// PHASE 2D: Performance Audits (Lighthouse)
+// ============================================
+
+model PerfAudit {
+  id              String          @id @default(cuid())
+  crawlRunId      String
+  projectId       String
+  pageId          String?
+  templateId      String?
+  url             String
+  normalizedUrl   String
+  device          PerfDevice      @default(MOBILE)
+  status          PerfAuditStatus @default(SKIPPED)
+
+  score           Float?
+  metricsJson     Json?
+  opportunitiesJson Json?
+  reportHtmlPath  String?
+  reportJsonPath  String?
+
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  errorJson       Json?
+  createdAt       DateTime        @default(now())
+
+  // Relations
+  crawlRun        CrawlRun        @relation(fields: [crawlRunId], references: [id], onDelete: Cascade)
+  project         Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  page            Page?           @relation(fields: [pageId], references: [id])
+  template        Template?       @relation(fields: [templateId], references: [id])
+
+  @@index([crawlRunId, status])
+  @@index([crawlRunId, templateId])
+  @@index([projectId, createdAt])
+  @@unique([crawlRunId, normalizedUrl, device])
+}
+
+model PerfBaseline {
+  id            String     @id @default(cuid())
+  projectId     String
+  templateId    String?
+  normalizedUrl String?
+  device        PerfDevice @default(MOBILE)
+  baselineJson  Json
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  // Relations
+  project       Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@unique([projectId, templateId, device])
+}
+
+model PerfRegressionItem {
+  id          String                 @id @default(cuid())
+  crawlRunId  String
+  projectId   String
+  templateId  String?
+  url         String
+  type        String                 // e.g. "LCP_REGRESSION", "CLS_REGRESSION", "SCORE_DROP"
+  severity    PerfRegressionSeverity
+  beforeJson  Json?
+  afterJson   Json?
+  deltaJson   Json?
+  createdAt   DateTime               @default(now())
+
+  // Relations
+  crawlRun    CrawlRun               @relation(fields: [crawlRunId], references: [id], onDelete: Cascade)
+  project     Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([crawlRunId, severity])
+  @@index([crawlRunId, templateId])
+}
+
+// ============================================
+// PHASE 2E: Fix Suggestions
+// ============================================
+
+model FixSuggestion {
+  id                 String     @id @default(cuid())
+  crawlRunId         String
+  projectId          String
+  templateId         String?
+  fixType            FixType
+  status             FixStatus  @default(OPEN)
+
+  priorityScore      Float?
+  impactScore        Float?
+  effortScore        Float?
+
+  title              String
+  summary            String
+  recommendation     String
+  evidenceJson       Json?
+
+  affectedPagesCount Int        @default(0)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  // Relations
+  crawlRun           CrawlRun   @relation(fields: [crawlRunId], references: [id], onDelete: Cascade)
+  project            Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  template           Template?  @relation(fields: [templateId], references: [id])
+  items              FixSuggestionItem[]
+
+  @@index([crawlRunId, priorityScore])
+  @@index([crawlRunId, templateId])
+}
+
+model FixSuggestionItem {
+  id              String        @id @default(cuid())
+  fixSuggestionId String
+  pageId          String?
+  url             String
+  normalizedUrl   String?
+  issueId         String?
+  perfAuditId     String?
+  createdAt       DateTime      @default(now())
+
+  // Relations
+  fixSuggestion   FixSuggestion @relation(fields: [fixSuggestionId], references: [id], onDelete: Cascade)
+
+  @@index([fixSuggestionId])
+}
+
+// ============================================
+// PHASE 3A: Marketing Experience Studio
+// ============================================
+
+model StudioRequest {
+  id             String                @id @default(cuid())
+  orgId          String
+  createdById    String?
+
+  title          String
+  problem        String
+  desiredOutcome String
+  targetUsers    String?
+  priority       StudioRequestPriority @default(MEDIUM)
+  status         StudioRequestStatus   @default(IDEA)
+
+  notesJson         Json?
+  aiSuggestionsJson Json?
+  approvedSpecId    String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  org            Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  toolSpecs      ToolSpec[]
+
+  @@index([orgId, status])
+}
+
+model ToolSpec {
+  id            String   @id @default(cuid())
+  orgId         String
+  requestId     String?
+
+  name          String
+  version       String   @default("0.1.0")
+  description   String
+  blueprintJson Json
+  status        String   @default("DRAFT") // DRAFT|READY|SHIPPED
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  org           Org            @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  request       StudioRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  buildRuns     BuildRun[]
+
+  @@index([orgId, status])
+}
+
+// Phase 3B: Track automated spec-to-PR build runs
+model BuildRun {
+  id         String         @id @default(cuid())
+  orgId      String
+  specId     String
+  requestId  String?
+  status     BuildRunStatus @default(QUEUED)
+
+  branchName String?
+  prUrl      String?
+  commitSha  String?
+  logsJson   Json?
+  errorJson  Json?
+
+  startedAt  DateTime?
+  finishedAt DateTime?
+  createdAt  DateTime       @default(now())
+
+  // Relations
+  org        Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  spec       ToolSpec @relation(fields: [specId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, status])
+  @@index([specId, createdAt])
+}
+
+model FeatureFlag {
+  id        String           @id @default(cuid())
+  key       String
+  enabled   Boolean          @default(false)
+
+  scope     FeatureFlagScope @default(GLOBAL)
+  orgId     String?
+  projectId String?
+
+  metadataJson Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([key, scope, orgId, projectId])
+  @@index([key, enabled])
+}
+
+model Release {
+  id          String   @id @default(cuid())
+  orgId       String?
+  version     String
+  title       String
+  notes       String?
+  changesJson Json?
+  createdAt   DateTime @default(now())
+
+  @@index([version])
 }

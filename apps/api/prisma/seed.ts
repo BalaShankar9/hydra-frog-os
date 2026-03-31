@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { PrismaClient, OrgRole } from '@prisma/client';
+import { PrismaClient, OrgRole, FeatureFlagScope } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 
@@ -9,6 +9,54 @@ const pool = new pg.Pool({
 
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
+
+// ============================================
+// FEATURE FLAGS TO SEED
+// ============================================
+
+const DEFAULT_FLAGS = [
+  // Studio - enabled by default
+  { key: 'studio.enabled', enabled: true },
+  
+  // Tools - mixed states for testing
+  { key: 'tools.templatesV2', enabled: true },
+  { key: 'tools.diffInsights', enabled: true },
+  { key: 'tools.performance', enabled: true },
+  { key: 'tools.fixEngine', enabled: true },
+  { key: 'tools.seoHealth', enabled: false }, // Disabled by default
+  
+  // Experimental - disabled by default
+  { key: 'experimental.aiSuggestions', enabled: false },
+  { key: 'experimental.bulkFixes', enabled: false },
+];
+
+async function seedFeatureFlags() {
+  console.info('Seeding feature flags...');
+  
+  for (const flag of DEFAULT_FLAGS) {
+    await prisma.featureFlag.upsert({
+      where: {
+        key_scope_orgId_projectId: {
+          key: flag.key,
+          scope: FeatureFlagScope.GLOBAL,
+          orgId: null,
+          projectId: null,
+        },
+      },
+      update: {},
+      create: {
+        key: flag.key,
+        enabled: flag.enabled,
+        scope: FeatureFlagScope.GLOBAL,
+        orgId: null,
+        projectId: null,
+      },
+    });
+    console.info(`  - ${flag.key}: ${flag.enabled ? 'enabled' : 'disabled'}`);
+  }
+  
+  console.info('Feature flags seeded successfully!');
+}
 
 async function main() {
   console.info('Seeding database...');
@@ -73,6 +121,9 @@ async function main() {
     },
   });
   console.info('Created demo project:', demoProject.name);
+
+  // Seed feature flags
+  await seedFeatureFlags();
 
   console.info('Seeding completed successfully!');
 }

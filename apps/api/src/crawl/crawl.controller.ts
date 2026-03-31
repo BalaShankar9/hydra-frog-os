@@ -8,6 +8,9 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Res,
+  NotFoundException,
+  StreamableFile,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -16,7 +19,11 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiProduces,
 } from '@nestjs/swagger';
+import { Response } from 'express';
+import { createReadStream, existsSync } from 'fs';
+import { join } from 'path';
 import { JwtAuthGuard, CurrentUser } from '../auth';
 import { CrawlService } from './crawl.service';
 import { CrawlDataService } from './crawl-data.service';
@@ -30,13 +37,15 @@ import {
   IssuesSummaryResponse,
   RedirectsListResponse,
   BrokenLinksListResponse,
-  PageDetailsResponse,
   PagesListResponseDto,
   IssuesListResponseDto,
   IssuesSummaryResponseDto,
   RedirectsListResponseDto,
   BrokenLinksListResponseDto,
-  PageDetailsResponseDto,
+  PageDetailsWithRenderResponseDto,
+  PageDetailsWithRenderResponse,
+  RenderSummaryResponse,
+  RenderSummaryResponseDto,
 } from './dto';
 
 interface JwtUser {
@@ -119,6 +128,7 @@ export class CrawlController {
   @ApiQuery({ name: 'q', required: false, description: 'Search by URL or title' })
   @ApiQuery({ name: 'status', required: false, description: 'Filter by status code' })
   @ApiQuery({ name: 'hasIssues', required: false, enum: ['true', 'false'], description: 'Filter pages with/without issues' })
+  @ApiQuery({ name: 'templateId', required: false, description: 'Filter by template ID' })
   @ApiQuery({ name: 'page', required: false, description: 'Page number' })
   @ApiQuery({ name: 'pageSize', required: false, description: 'Page size' })
   @ApiResponse({ status: 200, description: 'List of pages', type: PagesListResponseDto })
@@ -190,15 +200,64 @@ export class CrawlController {
     return this.crawlDataService.listBrokenLinks(user.id, crawlRunId, query);
   }
 
+  // ============================================
+  // Render Endpoints
+  // ============================================
+
+  @Get('crawls/:crawlRunId/render-summary')
+  @ApiOperation({ summary: 'Get render status summary for a crawl run' })
+  @ApiParam({ name: 'crawlRunId', description: 'Crawl Run ID' })
+  @ApiResponse({ status: 200, description: 'Render summary', type: RenderSummaryResponseDto })
+  @ApiResponse({ status: 404, description: 'Crawl run not found' })
+  async getRenderSummary(
+    @CurrentUser() user: JwtUser,
+    @Param('crawlRunId') crawlRunId: string,
+  ): Promise<RenderSummaryResponse> {
+    return this.crawlDataService.getRenderSummary(user.id, crawlRunId);
+  }
+
   @Get('pages/:pageId/details')
-  @ApiOperation({ summary: 'Get page details including issues and links' })
+  @ApiOperation({ summary: 'Get page details including issues, links, and render data' })
   @ApiParam({ name: 'pageId', description: 'Page ID' })
-  @ApiResponse({ status: 200, description: 'Page details', type: PageDetailsResponseDto })
+  @ApiResponse({ status: 200, description: 'Page details with render info', type: PageDetailsWithRenderResponseDto })
   @ApiResponse({ status: 404, description: 'Page not found' })
   async getPageDetails(
     @CurrentUser() user: JwtUser,
     @Param('pageId') pageId: string,
-  ): Promise<PageDetailsResponse> {
+  ): Promise<PageDetailsWithRenderResponse> {
     return this.crawlDataService.getPageDetails(user.id, pageId);
+  }
+
+  @Get('pages/:pageId/screenshot')
+  @ApiOperation({ summary: 'Get screenshot image for a rendered page' })
+  @ApiParam({ name: 'pageId', description: 'Page ID' })
+  @ApiProduces('image/png')
+  @ApiResponse({ status: 200, description: 'Screenshot image file' })
+  @ApiResponse({ status: 404, description: 'Page or screenshot not found' })
+  async getScreenshot(
+    @CurrentUser() user: JwtUser,
+    @Param('pageId') pageId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const screenshotPath = await this.crawlDataService.getScreenshotPath(user.id, pageId);
+
+    if (!screenshotPath) {
+      throw new NotFoundException('Screenshot not found for this page');
+    }
+
+    // The path stored is relative to project root
+    const absolutePath = join(process.cwd(), screenshotPath);
+
+    if (!existsSync(absolutePath)) {
+      throw new NotFoundException('Screenshot file not found');
+    }
+
+    res.set({
+      'Content-Type': 'image/png',
+      'Content-Disposition': `inline; filename="screenshot-${pageId}.png"`,
+    });
+
+    const fileStream = createReadStream(absolutePath);
+    return new StreamableFile(fileStream);
   }
 }

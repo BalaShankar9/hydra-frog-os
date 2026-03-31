@@ -12,7 +12,7 @@
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "jest",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
     "db:generate": "prisma generate --schema ../../apps/api/prisma/schema.prisma"
   },
   "dependencies": {

@@ -14,7 +14,8 @@ import {
   IssuesSummaryResponse,
   RedirectsListResponse,
   BrokenLinksListResponse,
-  PageDetailsResponse,
+  RenderSummaryResponse,
+  PageDetailsWithRenderResponse,
 } from './dto/crawl-data.dto';
 
 @Injectable()
@@ -80,7 +81,7 @@ export class CrawlDataService {
   ): Promise<PagesListResponse> {
     await this.verifyCrawlRunAccess(userId, crawlRunId);
 
-    const { page = 1, pageSize = 50, q, status, hasIssues } = query;
+    const { page = 1, pageSize = 50, q, status, hasIssues, templateId } = query;
     const skip = (page - 1) * pageSize;
 
     // Build where clause
@@ -105,6 +106,11 @@ export class CrawlDataService {
       } else {
         where.issues = { none: {} };
       }
+    }
+
+    // Filter by templateId if provided
+    if (templateId) {
+      where.templateId = templateId;
     }
 
     const [pages, total] = await Promise.all([
@@ -332,7 +338,7 @@ export class CrawlDataService {
   async getPageDetails(
     userId: string,
     pageId: string,
-  ): Promise<PageDetailsResponse> {
+  ): Promise<PageDetailsWithRenderResponse> {
     const page = await this.verifyPageAccess(userId, pageId);
 
     // Get issues, outgoing links, and inlinks in parallel
@@ -398,6 +404,93 @@ export class CrawlDataService {
         fromPageId: l.fromPageId,
         fromUrl: l.fromPage?.url ?? null,
       })),
+      // Render fields
+      renderStatus: page.renderStatus,
+      renderedFinalUrl: page.renderedFinalUrl,
+      renderedTitle: page.renderedTitle,
+      renderedMetaDescription: page.renderedMetaDescription,
+      renderedCanonical: page.renderedCanonical,
+      renderedRobotsMeta: page.renderedRobotsMeta,
+      renderedH1Count: page.renderedH1Count,
+      renderedWordCount: page.renderedWordCount,
+      renderedHtmlHash: page.renderedHtmlHash,
+      renderedLinksCount: page.renderedLinksCount,
+      renderConsoleErrorsJson: page.renderConsoleErrorsJson,
+      renderNetworkErrorsJson: page.renderNetworkErrorsJson,
+      renderScreenshotPath: page.renderScreenshotPath,
+      renderStartedAt: page.renderStartedAt,
+      renderFinishedAt: page.renderFinishedAt,
     };
+  }
+
+  /**
+   * GET /crawls/:crawlRunId/render-summary
+   */
+  async getRenderSummary(
+    userId: string,
+    crawlRunId: string,
+  ): Promise<RenderSummaryResponse> {
+    await this.verifyCrawlRunAccess(userId, crawlRunId);
+
+    // Get render status counts
+    const statusCounts = await this.prisma.page.groupBy({
+      by: ['renderStatus'],
+      where: { crawlRunId },
+      _count: { renderStatus: true },
+    });
+
+    const counts: Record<string, number> = {
+      SKIPPED: 0,
+      QUEUED: 0,
+      RUNNING: 0,
+      DONE: 0,
+      FAILED: 0,
+    };
+
+    for (const item of statusCounts) {
+      counts[item.renderStatus] = item._count.renderStatus;
+    }
+
+    // Get done pages with render info
+    const donePages = await this.prisma.page.findMany({
+      where: {
+        crawlRunId,
+        renderStatus: 'DONE',
+      },
+      select: {
+        id: true,
+        url: true,
+        renderedTitle: true,
+        renderScreenshotPath: true,
+      },
+      orderBy: { renderFinishedAt: 'desc' },
+      take: 100, // Limit to 100 done pages
+    });
+
+    return {
+      queued: counts.QUEUED,
+      running: counts.RUNNING,
+      done: counts.DONE,
+      failed: counts.FAILED,
+      skipped: counts.SKIPPED,
+      donePages: donePages.map((p) => ({
+        pageId: p.id,
+        url: p.url,
+        renderedTitle: p.renderedTitle,
+        renderScreenshotPath: p.renderScreenshotPath,
+      })),
+    };
+  }
+
+  /**
+   * GET /pages/:pageId/screenshot
+   * Returns screenshot file path for streaming
+   */
+  async getScreenshotPath(
+    userId: string,
+    pageId: string,
+  ): Promise<string | null> {
+    const page = await this.verifyPageAccess(userId, pageId);
+    return page.renderScreenshotPath;
   }
 }

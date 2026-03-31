@@ -7,6 +7,7 @@ import { Protected } from '@/components/Protected';
 import { AppShell } from '@/components/AppShell';
 import { apiFetch } from '@/lib/api';
 import { useToast } from '@/components/Toast';
+import { compareRuns } from '@/lib/diff';
 
 interface Project {
   id: string;
@@ -155,6 +156,9 @@ function ProjectDetailContent() {
   const canCancel = latestRun && (latestRun.status === 'QUEUED' || latestRun.status === 'RUNNING');
   const isRunning = crawlRuns.some(r => r.status === 'QUEUED' || r.status === 'RUNNING');
 
+  // Get completed runs for comparison
+  const completedRuns = crawlRuns.filter(r => r.status === 'DONE');
+
   if (isLoading) return <LoadingSkeleton />;
   if (error && !project) {
     return (
@@ -199,6 +203,11 @@ function ProjectDetailContent() {
 
       <ScheduleCard projectId={projectId} schedule={schedule} onUpdate={setSchedule} />
 
+      {/* Compare Runs Section */}
+      {completedRuns.length >= 2 && (
+        <CompareRunsCard projectId={projectId} completedRuns={completedRuns} />
+      )}
+
       <div className="bg-white rounded-lg border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Crawl Runs</h2>
@@ -234,6 +243,119 @@ function ProjectDetailContent() {
             </table>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// COMPARE RUNS CARD
+// ============================================
+
+interface CompareRunsCardProps {
+  projectId: string;
+  completedRuns: CrawlRun[];
+}
+
+function CompareRunsCard({ projectId, completedRuns }: CompareRunsCardProps) {
+  const router = useRouter();
+  const toast = useToast();
+  const [fromRunId, setFromRunId] = useState('');
+  const [toRunId, setToRunId] = useState('');
+  const [isComparing, setIsComparing] = useState(false);
+
+  const handleCompare = async () => {
+    if (!fromRunId || !toRunId) {
+      toast.error('Please select both runs to compare');
+      return;
+    }
+    if (fromRunId === toRunId) {
+      toast.error('Please select different runs to compare');
+      return;
+    }
+    setIsComparing(true);
+    try {
+      const result = await compareRuns(projectId, fromRunId, toRunId);
+      toast.success(result.isNew ? 'Comparison computed!' : 'Using existing comparison');
+      // Navigate to the to run with changes tab, or to dedicated diff page
+      router.push(`/diffs/${result.diffId}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to compare runs');
+    } finally {
+      setIsComparing(false);
+    }
+  };
+
+  const formatRunOption = (run: CrawlRun) => {
+    const date = new Date(run.createdAt).toLocaleDateString();
+    const time = new Date(run.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const pages = run.totalsJson?.pagesCrawled ?? 0;
+    return `${date} ${time} — ${pages} pages`;
+  };
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <CompareIcon className="w-5 h-5 text-blue-600" />
+        <h2 className="text-lg font-semibold text-gray-900">Compare Runs</h2>
+      </div>
+      <p className="text-sm text-gray-500 mb-4">
+        Select two completed crawl runs to compare and see what changed between them.
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">From (Previous)</label>
+          <select
+            value={fromRunId}
+            onChange={(e) => setFromRunId(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+          >
+            <option value="">Select a run...</option>
+            {completedRuns.map((run) => (
+              <option key={run.id} value={run.id} disabled={run.id === toRunId}>
+                {formatRunOption(run)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">To (Current)</label>
+          <select
+            value={toRunId}
+            onChange={(e) => setToRunId(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+          >
+            <option value="">Select a run...</option>
+            {completedRuns.map((run) => (
+              <option key={run.id} value={run.id} disabled={run.id === fromRunId}>
+                {formatRunOption(run)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <button
+            onClick={handleCompare}
+            disabled={!fromRunId || !toRunId || isComparing}
+            className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              !fromRunId || !toRunId || isComparing
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+          >
+            {isComparing ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Comparing...
+              </>
+            ) : (
+              <>
+                <CompareIcon className="w-4 h-4" />
+                Compare
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -365,6 +487,9 @@ function StopIcon({ className }: { className?: string }) {
 }
 function XIcon({ className }: { className?: string }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
+}
+function CompareIcon({ className }: { className?: string }) {
+  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>;
 }
 
 export default function ProjectDetailPage() {

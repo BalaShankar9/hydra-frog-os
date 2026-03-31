@@ -1,0 +1,2 @@
+# Lighthouse report storage directory
+# Reports are organized as: <crawlRunId>/<urlHash>/<device>.(html|json)

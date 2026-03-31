@@ -1,0 +1,9 @@
+/**
+ * Tools Test Directory
+ * 
+ * This directory contains test files for generated tools.
+ * Tests are scaffolded using: pnpm scaffold:tool --spec <toolSpecId>
+ * 
+ * Run tests with:
+ *   pnpm test apps/api/test/tools/<toolKey>.spec.ts
+ */

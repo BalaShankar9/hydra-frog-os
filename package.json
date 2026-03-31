@@ -24,7 +24,8 @@
     "clean:all": "turbo run clean && rm -rf node_modules",
     "docker:up": "docker compose -f infra/docker-compose.yml up -d",
     "docker:down": "docker compose -f infra/docker-compose.yml down",
-    "docker:logs": "docker compose -f infra/docker-compose.yml logs -f"
+    "docker:logs": "docker compose -f infra/docker-compose.yml logs -f",
+    "scaffold:tool": "npx tsx tools/scaffold-tool.ts"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

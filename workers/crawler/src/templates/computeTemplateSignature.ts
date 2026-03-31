@@ -47,6 +47,16 @@ const MAX_CLASS_TOKENS = 15;
 const MAX_CLASS_TOKEN_LENGTH = 20;
 
 /**
+ * Maximum HTML size to process (5MB) - skip larger files for performance
+ */
+const MAX_HTML_SIZE = 5 * 1024 * 1024;
+
+/**
+ * Maximum path depth for DOM skeleton elements
+ */
+const MAX_PATH_DEPTH = 20;
+
+/**
  * Template signature structure
  */
 export interface TemplateSignature {
@@ -105,14 +115,17 @@ function isElement(node: unknown): node is CheerioElement {
 
 /**
  * Build the path from body to an element (e.g., "body>div>main>section>article")
+ * Limited to MAX_PATH_DEPTH to prevent performance issues with deeply nested DOM
  */
 function buildElementPath(el: CheerioElement): string {
   const pathParts: string[] = [];
   let current: CheerioElement | ParentNode | null = el;
+  let depth = 0;
   
-  while (current && isElement(current)) {
+  while (current && isElement(current) && depth < MAX_PATH_DEPTH) {
     pathParts.unshift(current.tagName.toLowerCase());
     current = current.parent;
+    depth++;
   }
   
   return pathParts.join('>');
@@ -126,6 +139,11 @@ function buildElementPath(el: CheerioElement): string {
  */
 export function computeTemplateSignature(html: string): TemplateSignatureResult | null {
   try {
+    // Bail out early for very large HTML to prevent memory/CPU issues
+    if (!html || html.length > MAX_HTML_SIZE) {
+      return null;
+    }
+    
     // Load HTML with cheerio
     const $ = load(html);
     

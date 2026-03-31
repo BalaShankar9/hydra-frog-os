@@ -34,11 +34,37 @@ export class HealthController {
   }
 
   @Get('queue')
-  @ApiOperation({ summary: 'Check queue health and counts' })
+  @ApiOperation({ summary: 'Check crawl queue health and counts' })
   @SwaggerResponse({ status: 200, description: 'Queue health status' })
   async checkQueue(): Promise<QueueHealthStatus> {
     const isHealthy = await this.queueService.isHealthy();
     const counts = await this.queueService.getCrawlQueueCounts();
+
+    return {
+      ok: isHealthy,
+      counts,
+    };
+  }
+
+  @Get('render-queue')
+  @ApiOperation({ summary: 'Check render queue health and counts' })
+  @SwaggerResponse({ status: 200, description: 'Render queue health status' })
+  async checkRenderQueue(): Promise<QueueHealthStatus> {
+    const isHealthy = await this.queueService.isHealthy();
+    const counts = await this.queueService.getRenderQueueCounts();
+
+    return {
+      ok: isHealthy,
+      counts,
+    };
+  }
+
+  @Get('perf-queue')
+  @ApiOperation({ summary: 'Check perf queue health and counts' })
+  @SwaggerResponse({ status: 200, description: 'Perf queue health status' })
+  async checkPerfQueue(): Promise<QueueHealthStatus> {
+    const isHealthy = await this.queueService.isHealthy();
+    const counts = await this.queueService.getPerfQueueCounts();
 
     return {
       ok: isHealthy,

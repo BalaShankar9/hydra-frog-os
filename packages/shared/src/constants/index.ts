@@ -3,6 +3,9 @@
  */
 export const APP_NAME = 'hydra-frog-os';
 
+// Re-export project settings
+export * from './settings.js';
+
 /**
  * Default pagination values
  */

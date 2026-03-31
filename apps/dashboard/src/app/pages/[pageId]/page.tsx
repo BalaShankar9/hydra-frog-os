@@ -30,6 +30,22 @@ interface PageDetails {
   issues: IssueItem[];
   outgoingLinks: LinkItem[];
   inlinks: InlinkItem[];
+  // Render fields
+  renderStatus: string;
+  renderedFinalUrl: string | null;
+  renderedTitle: string | null;
+  renderedMetaDescription: string | null;
+  renderedCanonical: string | null;
+  renderedRobotsMeta: string | null;
+  renderedH1Count: number | null;
+  renderedWordCount: number | null;
+  renderedHtmlHash: string | null;
+  renderedLinksCount: number | null;
+  renderConsoleErrorsJson: unknown;
+  renderNetworkErrorsJson: unknown;
+  renderScreenshotPath: string | null;
+  renderStartedAt: string | null;
+  renderFinishedAt: string | null;
 }
 
 interface IssueItem {
@@ -108,6 +124,11 @@ function PageDetailsContent() {
 
       {/* Meta Overview Cards */}
       <MetaOverview page={page} />
+
+      {/* Rendered Snapshot Section */}
+      {page.renderStatus !== 'SKIPPED' && (
+        <RenderedSnapshot page={page} />
+      )}
 
       {/* Issues Panel */}
       <IssuesPanel issues={page.issues} />
@@ -282,6 +303,186 @@ function DetailRow({
       <span className={`mt-0.5 truncate ${statusColors[status]}`}>
         {value || (status === 'missing' ? '⚠️ Not set' : '-')}
       </span>
+    </div>
+  );
+}
+
+// ============================================
+// RENDERED SNAPSHOT
+// ============================================
+
+function RenderedSnapshot({ page }: { page: PageDetails }) {
+  const [showScreenshot, setShowScreenshot] = useState(false);
+  const [expandConsole, setExpandConsole] = useState(false);
+  const [expandNetwork, setExpandNetwork] = useState(false);
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+  const statusColors: Record<string, string> = {
+    SKIPPED: 'bg-gray-100 text-gray-700',
+    QUEUED: 'bg-yellow-100 text-yellow-700',
+    RUNNING: 'bg-blue-100 text-blue-700',
+    DONE: 'bg-green-100 text-green-700',
+    FAILED: 'bg-red-100 text-red-700',
+  };
+
+  const consoleErrors = Array.isArray(page.renderConsoleErrorsJson) 
+    ? page.renderConsoleErrorsJson 
+    : [];
+  const networkErrors = Array.isArray(page.renderNetworkErrorsJson) 
+    ? page.renderNetworkErrorsJson 
+    : [];
+
+  // Comparison items for Raw vs Rendered
+  const comparisons = [
+    { label: 'Title', raw: page.title, rendered: page.renderedTitle },
+    { label: 'Meta Description', raw: page.metaDescription, rendered: page.renderedMetaDescription },
+    { label: 'Canonical', raw: page.canonical, rendered: page.renderedCanonical },
+    { label: 'Robots', raw: page.robotsMeta, rendered: page.renderedRobotsMeta },
+    { label: 'H1 Count', raw: page.h1Count, rendered: page.renderedH1Count },
+    { label: 'Word Count', raw: page.wordCount, rendered: page.renderedWordCount },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* Header Card */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold text-gray-900">🖼️ Rendered Snapshot</h2>
+            <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[page.renderStatus]}`}>
+              {page.renderStatus === 'RUNNING' && <span className="w-1.5 h-1.5 mr-1.5 bg-blue-500 rounded-full animate-pulse" />}
+              {page.renderStatus}
+            </span>
+          </div>
+          {page.renderScreenshotPath && (
+            <button
+              onClick={() => setShowScreenshot(!showScreenshot)}
+              className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+            >
+              📷 {showScreenshot ? 'Hide' : 'View'} Screenshot
+            </button>
+          )}
+        </div>
+
+        {/* Screenshot Preview */}
+        {showScreenshot && page.renderScreenshotPath && (
+          <div className="mb-4 p-2 bg-gray-50 rounded-lg border border-gray-200">
+            <img
+              src={`${apiBase}/pages/${page.pageId}/screenshot`}
+              alt="Rendered screenshot"
+              className="w-full rounded border border-gray-300"
+            />
+          </div>
+        )}
+
+        {/* Render Timing */}
+        {page.renderStartedAt && (
+          <div className="flex items-center gap-4 text-sm text-gray-500">
+            <span>Started: {new Date(page.renderStartedAt).toLocaleString()}</span>
+            {page.renderFinishedAt && (
+              <span>Finished: {new Date(page.renderFinishedAt).toLocaleString()}</span>
+            )}
+            {page.renderedFinalUrl && page.renderedFinalUrl !== page.url && (
+              <span className="text-orange-600">
+                ↪ Redirected to: <span className="font-mono text-xs">{page.renderedFinalUrl}</span>
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Raw vs Rendered Comparison */}
+      {page.renderStatus === 'DONE' && (
+        <div className="bg-white rounded-lg border border-gray-200">
+          <div className="px-4 py-3 border-b border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-900">Raw vs Rendered Comparison</h3>
+          </div>
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {comparisons.map((item) => {
+                const hasChange = String(item.raw ?? '') !== String(item.rendered ?? '');
+                return (
+                  <div
+                    key={item.label}
+                    className={`rounded-lg border p-3 ${hasChange ? 'border-orange-200 bg-orange-50' : 'border-gray-200 bg-gray-50'}`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-gray-500 uppercase">{item.label}</span>
+                      {hasChange && (
+                        <span className="text-xs font-medium text-orange-600">Changed</span>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-start gap-2">
+                        <span className="flex-shrink-0 text-xs text-gray-400 w-14">Raw:</span>
+                        <span className="text-sm text-gray-700 truncate" title={String(item.raw ?? '-')}>
+                          {item.raw ?? '-'}
+                        </span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="flex-shrink-0 text-xs text-gray-400 w-14">Rendered:</span>
+                        <span className={`text-sm truncate ${hasChange ? 'text-orange-700 font-medium' : 'text-gray-700'}`} title={String(item.rendered ?? '-')}>
+                          {item.rendered ?? '-'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Console Errors */}
+      {consoleErrors.length > 0 && (
+        <div className="bg-white rounded-lg border border-red-200">
+          <button
+            onClick={() => setExpandConsole(!expandConsole)}
+            className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-red-50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-red-500">⚠️</span>
+              <h3 className="text-sm font-semibold text-gray-900">Console Errors ({consoleErrors.length})</h3>
+            </div>
+            <ChevronIcon className={`w-5 h-5 text-gray-400 transition-transform ${expandConsole ? 'rotate-180' : ''}`} />
+          </button>
+          {expandConsole && (
+            <div className="px-4 pb-4">
+              <div className="bg-gray-900 rounded-lg p-3 overflow-auto max-h-64">
+                <pre className="text-xs text-red-300 font-mono whitespace-pre-wrap">
+                  {JSON.stringify(consoleErrors, null, 2)}
+                </pre>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Network Errors */}
+      {networkErrors.length > 0 && (
+        <div className="bg-white rounded-lg border border-yellow-200">
+          <button
+            onClick={() => setExpandNetwork(!expandNetwork)}
+            className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-yellow-50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-yellow-500">🌐</span>
+              <h3 className="text-sm font-semibold text-gray-900">Network Failures ({networkErrors.length})</h3>
+            </div>
+            <ChevronIcon className={`w-5 h-5 text-gray-400 transition-transform ${expandNetwork ? 'rotate-180' : ''}`} />
+          </button>
+          {expandNetwork && (
+            <div className="px-4 pb-4">
+              <div className="bg-gray-900 rounded-lg p-3 overflow-auto max-h-64">
+                <pre className="text-xs text-yellow-300 font-mono whitespace-pre-wrap">
+                  {JSON.stringify(networkErrors, null, 2)}
+                </pre>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

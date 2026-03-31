@@ -16,6 +16,21 @@ export interface QueueCounts {
   delayed: number;
 }
 
+export interface RenderJobData {
+  crawlRunId: string;
+  pageId: string;
+  url: string;
+}
+
+export interface PerfJobData {
+  crawlRunId: string;
+  projectId: string;
+  pageId?: string;
+  url: string;
+  templateId?: string;
+  device: 'MOBILE' | 'DESKTOP';
+}
+
 @Injectable()
 export class QueueService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(QueueService.name);
@@ -23,8 +38,10 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
   private connectionConfig: RedisOptions;
   private queues: Map<string, Queue> = new Map();
 
-  // Default queue name
+  // Queue names
   static readonly CRAWL_JOBS_QUEUE = 'crawl-jobs';
+  static readonly RENDER_JOBS_QUEUE = 'render-jobs';
+  static readonly PERF_JOBS_QUEUE = 'perf-jobs';
 
   constructor(private readonly configService: ConfigService) {
     const host = this.configService.get<string>('REDIS_HOST', 'localhost');
@@ -64,8 +81,10 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
       this.logger.warn('Redis not available at startup - will retry on health checks');
     });
 
-    // Initialize the default crawl-jobs queue
+    // Initialize queues
     this.getQueue(QueueService.CRAWL_JOBS_QUEUE);
+    this.getQueue(QueueService.RENDER_JOBS_QUEUE);
+    this.getQueue(QueueService.PERF_JOBS_QUEUE);
     this.logger.log('Queue service initialized');
   }
 
@@ -126,6 +145,16 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
    */
   async addCrawlJob<T>(jobName: string, data: T, opts?: JobsOptions): Promise<Job<T>> {
     return this.addJob(QueueService.CRAWL_JOBS_QUEUE, jobName, data, opts);
+  }
+
+  /**
+   * Add a job to the render-jobs queue (convenience method)
+   */
+  async addRenderJob(
+    data: { crawlRunId: string; pageId: string; url: string },
+    opts?: JobsOptions,
+  ): Promise<Job<{ crawlRunId: string; pageId: string; url: string }>> {
+    return this.addJob(QueueService.RENDER_JOBS_QUEUE, 'render-page', data, opts);
   }
 
   /**
@@ -197,6 +226,30 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
    */
   async getCrawlQueueCounts(): Promise<QueueCounts> {
     return this.getQueueCounts(QueueService.CRAWL_JOBS_QUEUE);
+  }
+
+  /**
+   * Get render-jobs queue counts (convenience method)
+   */
+  async getRenderQueueCounts(): Promise<QueueCounts> {
+    return this.getQueueCounts(QueueService.RENDER_JOBS_QUEUE);
+  }
+
+  /**
+   * Get perf-jobs queue counts (convenience method)
+   */
+  async getPerfQueueCounts(): Promise<QueueCounts> {
+    return this.getQueueCounts(QueueService.PERF_JOBS_QUEUE);
+  }
+
+  /**
+   * Add a job to the perf-jobs queue (convenience method)
+   */
+  async addPerfJob(
+    data: PerfJobData,
+    opts?: JobsOptions,
+  ): Promise<Job<PerfJobData>> {
+    return this.addJob(QueueService.PERF_JOBS_QUEUE, 'perf-audit', data, opts);
   }
 
   /**

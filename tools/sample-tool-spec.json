@@ -1,0 +1,146 @@
+{
+  "id": "sample-tool-spec",
+  "name": "SEO Health Dashboard",
+  "description": "A comprehensive SEO health check tool that analyzes crawl data and identifies issues",
+  "version": "1.0.0",
+  "status": "DRAFT",
+  "blueprintJson": {
+    "meta": {
+      "name": "SEO Health Dashboard",
+      "version": "1.0.0",
+      "description": "Analyze SEO health across your website",
+      "category": "AUDIT",
+      "tags": ["seo", "audit", "health", "issues"]
+    },
+    "dataSources": [
+      {
+        "type": "PAGES",
+        "alias": "pages",
+        "required": true,
+        "fields": ["url", "title", "statusCode", "h1Count", "wordCount"]
+      },
+      {
+        "type": "ISSUES",
+        "alias": "issues",
+        "required": true,
+        "fields": ["type", "severity", "pageUrl", "message"]
+      }
+    ],
+    "inputs": [
+      {
+        "name": "projectId",
+        "label": "Project",
+        "type": "PROJECT_SELECTOR",
+        "required": true,
+        "description": "Select the project to analyze"
+      },
+      {
+        "name": "crawlRunId",
+        "label": "Crawl Run",
+        "type": "CRAWL_SELECTOR",
+        "required": true,
+        "description": "Select the crawl run to analyze"
+      },
+      {
+        "name": "minSeverity",
+        "label": "Minimum Severity",
+        "type": "SELECT",
+        "required": false,
+        "description": "Filter issues by minimum severity",
+        "options": [
+          { "value": "LOW", "label": "Low and above" },
+          { "value": "MEDIUM", "label": "Medium and above" },
+          { "value": "HIGH", "label": "High and above" },
+          { "value": "CRITICAL", "label": "Critical only" }
+        ]
+      },
+      {
+        "name": "includeWarnings",
+        "label": "Include Warnings",
+        "type": "TOGGLE",
+        "required": false,
+        "description": "Include warning-level issues in the report",
+        "defaultValue": true
+      }
+    ],
+    "outputs": [
+      {
+        "name": "healthScore",
+        "type": "METRIC",
+        "description": "Overall SEO health score (0-100)"
+      },
+      {
+        "name": "issuesSummary",
+        "type": "TABLE",
+        "description": "Summary of issues by type and severity"
+      },
+      {
+        "name": "pagesList",
+        "type": "TABLE",
+        "description": "List of pages with their health status"
+      }
+    ],
+    "screens": [
+      {
+        "type": "INPUT_FORM",
+        "title": "Configuration",
+        "components": ["FORM"],
+        "description": "Configure analysis parameters"
+      },
+      {
+        "type": "DASHBOARD",
+        "title": "Overview",
+        "components": ["METRIC_CARD", "GAUGE", "CHART"],
+        "description": "High-level health metrics"
+      },
+      {
+        "type": "RESULTS",
+        "title": "Issues",
+        "components": ["TABLE", "FILTER"],
+        "description": "Detailed list of SEO issues"
+      }
+    ],
+    "kpis": [
+      {
+        "id": "health_score",
+        "name": "Health Score",
+        "calculation": "100 - (weighted_issues / max_score * 100)",
+        "dataSource": "ISSUES",
+        "unit": "points",
+        "target": 85
+      },
+      {
+        "id": "critical_issues",
+        "name": "Critical Issues",
+        "calculation": "COUNT(issues WHERE severity = CRITICAL)",
+        "dataSource": "ISSUES",
+        "unit": "issues"
+      },
+      {
+        "id": "pages_with_issues",
+        "name": "Pages with Issues",
+        "calculation": "COUNT(DISTINCT pageUrl FROM issues)",
+        "dataSource": "ISSUES",
+        "unit": "pages"
+      },
+      {
+        "id": "clean_pages_pct",
+        "name": "Clean Pages",
+        "calculation": "(pages_without_issues / total_pages) * 100",
+        "dataSource": "PAGES",
+        "unit": "%",
+        "target": 90
+      }
+    ],
+    "exports": [
+      {
+        "type": "CSV",
+        "name": "Issues CSV"
+      },
+      {
+        "type": "PDF",
+        "name": "Health Report PDF"
+      }
+    ]
+  }
+}
