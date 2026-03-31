@@ -4,6 +4,7 @@ import './globals.css';
 import { ToastProvider } from '@/components/Toast';
 import { FlagProvider } from '@/components/FlagProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -18,15 +19,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ErrorBoundary>
-          <FlagProvider>
-            <ToastProvider>
-              {children}
-            </ToastProvider>
-          </FlagProvider>
-        </ErrorBoundary>
+        <ThemeProvider>
+          <ErrorBoundary>
+            <FlagProvider>
+              <ToastProvider>
+                {children}
+              </ToastProvider>
+            </FlagProvider>
+          </ErrorBoundary>
+        </ThemeProvider>
       </body>
     </html>
   );

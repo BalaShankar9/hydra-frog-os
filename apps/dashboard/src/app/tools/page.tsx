@@ -95,8 +95,8 @@ function ToolsContent() {
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">SEO Tools</h1>
-        <p className="text-gray-500 mt-1">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">SEO Tools</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">
           Powerful tools powered by your crawl data
         </p>
       </div>
@@ -112,7 +112,7 @@ function ToolsContent() {
               <Link
                 key={tool.key}
                 href={`/tools/${tool.key}`}
-                className="bg-white rounded-xl border border-gray-200 p-6 hover:border-blue-300 hover:shadow-md transition-all group"
+                className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-md transition-all group"
               >
                 <div className="flex items-start justify-between mb-3">
                   <span className="text-3xl">{tool.icon}</span>
@@ -120,10 +120,10 @@ function ToolsContent() {
                     {tool.category}
                   </span>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                   {tool.name}
                 </h3>
-                <p className="text-sm text-gray-500">{tool.description}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{tool.description}</p>
                 {tool.status === 'beta' && (
                   <span className="inline-block mt-3 px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-700 rounded">
                     BETA
@@ -145,7 +145,7 @@ function ToolsContent() {
             {upcoming.map((tool) => (
               <div
                 key={tool.key}
-                className="bg-white rounded-xl border border-gray-200 p-6 opacity-60"
+                className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 opacity-60"
               >
                 <div className="flex items-start justify-between mb-3">
                   <span className="text-3xl">{tool.icon}</span>
@@ -153,10 +153,10 @@ function ToolsContent() {
                     {tool.category}
                   </span>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
                   {tool.name}
                 </h3>
-                <p className="text-sm text-gray-500">{tool.description}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{tool.description}</p>
                 <span className="inline-block mt-3 px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-500 rounded">
                   Coming Soon
                 </span>

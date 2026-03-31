@@ -5,7 +5,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { clearToken } from '@/lib/auth';
 import { authApi } from '@/lib/api';
-import { useFlag, useFlagContext } from './FlagProvider';
+import { useFlagContext } from './FlagProvider';
+import { useTheme } from './ThemeProvider';
 import { FLAG_KEYS } from '@/lib/flags';
 
 interface AppShellProps {
@@ -21,37 +22,29 @@ interface NavItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  flag?: string; // Optional flag key - if set, item only shows when flag is enabled
+  flag?: string;
 }
 
-/**
- * Main application layout shell with sidebar and topbar
- */
 export function AppShell({ children }: AppShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
-  // Feature flags for navigation
   const { isEnabled } = useFlagContext();
+  const { resolved, toggle } = useTheme();
 
   useEffect(() => {
-    // Fetch current user info
     const fetchUser = async () => {
       try {
         const userData = await authApi.me();
         setUser(userData);
-      } catch (error) {
-        console.error('Failed to fetch user:', error);
-        // If we can't fetch user, they might be logged out
+      } catch {
         handleLogout();
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchUser();
   }, []);
 
@@ -60,7 +53,6 @@ export function AppShell({ children }: AppShellProps) {
     router.push('/login');
   };
 
-  // Navigation items with optional feature flags
   const allNavigation: NavItem[] = [
     { name: 'Dashboard', href: '/dashboard', icon: DashboardIcon },
     { name: 'Projects', href: '/projects', icon: FolderIcon },
@@ -71,49 +63,49 @@ export function AppShell({ children }: AppShellProps) {
     { name: 'Performance', href: '/pages', icon: ChartIcon, flag: FLAG_KEYS.TOOLS_PERFORMANCE },
     { name: 'Fix Engine', href: '/fixes', icon: WrenchIcon, flag: FLAG_KEYS.TOOLS_FIX_ENGINE },
   ];
-  
-  // Filter navigation based on feature flags
-  const navigation = allNavigation.filter(item => {
-    if (!item.flag) return true; // No flag = always visible
+
+  const navigation = allNavigation.filter((item) => {
+    if (!item.flag) return true;
     return isEnabled(item.flag);
   });
 
+  const navLinkClass = (href: string) => {
+    const isActive = pathname === href || pathname.startsWith(href + '/');
+    return `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+      isActive
+        ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+        : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+    }`;
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
+        <div
+          className="fixed inset-0 z-40 bg-gray-600/75 dark:bg-black/60 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Mobile sidebar */}
-      <div className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:hidden
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-      `}>
-        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
-          <span className="text-xl font-bold text-blue-600">🐸 HydraFrog</span>
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 shadow-lg transform transition-transform duration-300 ease-in-out lg:hidden ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-800">
+          <span className="text-xl font-bold text-blue-600 dark:text-blue-400">HydraFrog</span>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="p-2 text-gray-500 hover:text-gray-700"
+            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            aria-label="Close sidebar"
           >
             <XIcon className="w-6 h-6" />
           </button>
         </div>
-        <nav className="mt-4 px-2">
+        <nav className="mt-4 px-2 space-y-1" aria-label="Main navigation">
           {navigation.map((item) => (
             <Link
               key={item.name}
               href={item.href}
-              className={`
-                flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-                ${pathname === item.href || pathname.startsWith(item.href + '/')
-                  ? 'bg-blue-50 text-blue-700' 
-                  : 'text-gray-700 hover:bg-gray-100'
-                }
-              `}
+              className={navLinkClass(item.href)}
               onClick={() => setSidebarOpen(false)}
             >
               <item.icon className="w-5 h-5" />
@@ -125,60 +117,66 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex flex-col flex-1 bg-white border-r border-gray-200">
-          {/* Logo */}
-          <div className="flex items-center h-16 px-4 border-b border-gray-200">
-            <span className="text-xl font-bold text-blue-600">🐸 HydraFrog</span>
+        <div className="flex flex-col flex-1 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
+          <div className="flex items-center h-16 px-4 border-b border-gray-200 dark:border-gray-800">
+            <span className="text-xl font-bold text-blue-600 dark:text-blue-400">HydraFrog</span>
           </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 mt-4 px-2 space-y-1">
+          <nav className="flex-1 mt-4 px-2 space-y-1" aria-label="Main navigation">
             {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`
-                  flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-                  ${pathname === item.href || pathname.startsWith(item.href + '/')
-                    ? 'bg-blue-50 text-blue-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                  }
-                `}
-              >
+              <Link key={item.name} href={item.href} className={navLinkClass(item.href)}>
                 <item.icon className="w-5 h-5" />
                 {item.name}
               </Link>
             ))}
           </nav>
+          {/* Theme toggle at bottom of sidebar */}
+          <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+            <button
+              onClick={toggle}
+              className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+              aria-label={`Switch to ${resolved === 'dark' ? 'light' : 'dark'} mode`}
+            >
+              {resolved === 'dark' ? (
+                <SunIcon className="w-5 h-5" />
+              ) : (
+                <MoonIcon className="w-5 h-5" />
+              )}
+              {resolved === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Main content area */}
       <div className="lg:pl-64">
         {/* Topbar */}
-        <header className="sticky top-0 z-30 bg-white border-b border-gray-200">
+        <header className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center justify-between h-16 px-4 sm:px-6">
-            {/* Mobile menu button */}
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-2 text-gray-500 hover:text-gray-700 lg:hidden"
+              className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 lg:hidden"
+              aria-label="Open sidebar"
             >
               <MenuIcon className="w-6 h-6" />
             </button>
-
-            {/* Spacer for desktop */}
             <div className="hidden lg:block" />
-
-            {/* User menu */}
             <div className="flex items-center gap-4">
+              {/* Mobile theme toggle */}
+              <button
+                onClick={toggle}
+                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 lg:hidden rounded-lg"
+                aria-label={`Switch to ${resolved === 'dark' ? 'light' : 'dark'} mode`}
+              >
+                {resolved === 'dark' ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
+              </button>
               {isLoading ? (
-                <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+                <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
               ) : user ? (
-                <span className="text-sm text-gray-600">{user.email}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">{user.email}</span>
               ) : null}
               <button
                 onClick={handleLogout}
-                className="px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-800 rounded-lg transition-colors"
               >
                 Logout
               </button>
@@ -186,17 +184,14 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="p-4 sm:p-6 lg:p-8">
-          {children}
-        </main>
+        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );
 }
 
 // ============================================
-// Icon Components
+// Icons
 // ============================================
 
 function FolderIcon({ className }: { className?: string }) {
@@ -276,6 +271,22 @@ function ToolboxIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+    </svg>
+  );
+}
+
+function SunIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+    </svg>
+  );
+}
+
+function MoonIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
     </svg>
   );
 }

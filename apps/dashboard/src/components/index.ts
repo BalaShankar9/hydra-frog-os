@@ -40,3 +40,4 @@ export {
 } from './DiffView';
 export { ErrorBoundary } from './ErrorBoundary';
 export { Breadcrumbs } from './Breadcrumbs';
+export { ThemeProvider, useTheme } from './ThemeProvider';
