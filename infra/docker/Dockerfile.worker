@@ -1,0 +1,55 @@
+# Shared Dockerfile for all workers (crawler, renderer, perf-auditor)
+# Build with: docker build --build-arg WORKER=crawler -f infra/docker/Dockerfile.worker .
+
+FROM node:20-alpine AS base
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+WORKDIR /app
+
+ARG WORKER=crawler
+
+# Install dependencies
+FROM base AS deps
+ARG WORKER
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY workers/${WORKER}/package.json ./workers/${WORKER}/
+COPY packages/shared/package.json ./packages/shared/
+RUN pnpm install --frozen-lockfile --filter ${WORKER}...
+
+# Build
+FROM base AS build
+ARG WORKER
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/workers/${WORKER}/node_modules ./workers/${WORKER}/node_modules
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY . .
+RUN cd workers/${WORKER} && npx tsc
+
+# Production
+FROM node:20-alpine AS runner
+ARG WORKER
+
+# Install chromium for renderer and perf-auditor
+RUN if [ "$WORKER" = "renderer" ] || [ "$WORKER" = "perf-auditor" ]; then \
+      apk add --no-cache chromium; \
+    fi
+
+WORKDIR /app
+
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 worker
+
+COPY --from=build --chown=worker:nodejs /app/workers/${WORKER}/dist ./dist
+COPY --from=build --chown=worker:nodejs /app/workers/${WORKER}/node_modules ./node_modules
+
+USER worker
+
+ENV NODE_ENV=production
+ENV HEALTH_PORT=8080
+ENV CHROMIUM_PATH=/usr/bin/chromium-browser
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/healthz || exit 1
+
+CMD ["node", "dist/index.js"]

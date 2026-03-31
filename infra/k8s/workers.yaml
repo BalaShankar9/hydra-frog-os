@@ -1,0 +1,166 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crawler
+  namespace: hydra-frog
+  labels:
+    app: crawler
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: crawler
+  template:
+    metadata:
+      labels:
+        app: crawler
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: crawler
+          image: hydra-frog-os/worker-crawler:latest
+          ports:
+            - containerPort: 8080
+              name: health
+          envFrom:
+            - secretRef:
+                name: hydra-frog-secrets
+            - configMapRef:
+                name: hydra-frog-config
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: renderer
+  namespace: hydra-frog
+  labels:
+    app: renderer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: renderer
+  template:
+    metadata:
+      labels:
+        app: renderer
+    spec:
+      terminationGracePeriodSeconds: 90
+      containers:
+        - name: renderer
+          image: hydra-frog-os/worker-renderer:latest
+          ports:
+            - containerPort: 8080
+              name: health
+          envFrom:
+            - secretRef:
+                name: hydra-frog-secrets
+            - configMapRef:
+                name: hydra-frog-config
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            initialDelaySeconds: 15
+            periodSeconds: 15
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: perf-auditor
+  namespace: hydra-frog
+  labels:
+    app: perf-auditor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: perf-auditor
+  template:
+    metadata:
+      labels:
+        app: perf-auditor
+    spec:
+      terminationGracePeriodSeconds: 120
+      containers:
+        - name: perf-auditor
+          image: hydra-frog-os/worker-perf-auditor:latest
+          ports:
+            - containerPort: 8080
+              name: health
+          envFrom:
+            - secretRef:
+                name: hydra-frog-secrets
+            - configMapRef:
+                name: hydra-frog-config
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 3Gi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 25
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            initialDelaySeconds: 15
+            periodSeconds: 15
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: crawler
+  namespace: hydra-frog
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: crawler
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75

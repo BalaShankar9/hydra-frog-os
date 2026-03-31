@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hydra-frog-config
+  namespace: hydra-frog
+data:
+  NODE_ENV: "production"
+  API_PORT: "3001"
+  HEALTH_PORT: "8080"
+  LOG_LEVEL: "info"
+  CORS_ORIGINS: "https://your-domain.com"
+  WORKER_CONCURRENCY: "3"
+---
+# Create secrets with: kubectl create secret generic hydra-frog-secrets --from-env-file=.env -n hydra-frog
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hydra-frog-secrets
+  namespace: hydra-frog
+type: Opaque
+stringData:
+  DATABASE_URL: "postgresql://user:pass@postgres:5432/hydra_frog_os"
+  JWT_SECRET: "CHANGE_ME_IN_PRODUCTION"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"

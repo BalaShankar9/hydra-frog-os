@@ -10,6 +10,7 @@ import { config } from './config.js';
 import type { PerfJobData } from './types.js';
 import { runLighthouse, closeChrome } from './lighthouse/index.js';
 import { storeReports } from './storage.js';
+import { startHealthServer } from '@hydra-frog-os/shared/health/index.js';
 
 const QUEUE_NAME = 'perf-jobs';
 
@@ -162,9 +163,21 @@ async function main(): Promise<void> {
     console.error('[PerfAuditor] Worker error:', error);
   });
 
-  // Graceful shutdown
+  // Health check server
+  let isReady = false;
+  const healthPort = parseInt(process.env.HEALTH_PORT || '8082', 10);
+  startHealthServer({ port: healthPort, service: 'perf-auditor', isReady: () => isReady });
+
+  worker.on('ready', () => { isReady = true; });
+
+  // Graceful shutdown with drain
+  let isShuttingDown = false;
   const shutdown = async (signal: string) => {
-    console.log(`[PerfAuditor] Received ${signal}, shutting down...`);
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    isReady = false;
+    console.log(`[PerfAuditor] Received ${signal}, draining active jobs...`);
+    await worker.pause();
     await worker.close();
     await closeChrome();
     await prisma.$disconnect();

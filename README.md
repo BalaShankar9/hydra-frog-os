@@ -260,17 +260,56 @@ pnpm --filter dashboard tsc --noEmit
 
 ---
 
+## Deployment
+
+### Docker
+
+Build images from the repo root:
+
+```bash
+# API
+docker build -f infra/docker/Dockerfile.api -t hydra-frog-os/api .
+
+# Dashboard
+docker build -f infra/docker/Dockerfile.dashboard -t hydra-frog-os/dashboard .
+
+# Workers (pass WORKER=crawler|renderer|perf-auditor)
+docker build -f infra/docker/Dockerfile.worker --build-arg WORKER=crawler -t hydra-frog-os/worker-crawler .
+docker build -f infra/docker/Dockerfile.worker --build-arg WORKER=renderer -t hydra-frog-os/worker-renderer .
+docker build -f infra/docker/Dockerfile.worker --build-arg WORKER=perf-auditor -t hydra-frog-os/worker-perf-auditor .
+```
+
+### Kubernetes
+
+```bash
+kubectl apply -f infra/k8s/namespace.yaml
+kubectl apply -f infra/k8s/config.yaml
+kubectl apply -f infra/k8s/api.yaml
+kubectl apply -f infra/k8s/dashboard.yaml
+kubectl apply -f infra/k8s/workers.yaml
+```
+
+Includes Deployments, Services, HPA (auto-scaling), liveness/readiness probes, and resource limits.
+
+### Worker Health Checks
+
+All workers expose HTTP health endpoints:
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /healthz` | Liveness probe — is the process alive |
+| `GET /readyz` | Readiness probe — is the worker accepting jobs |
+
+---
+
 ## Roadmap
 
-### Phase 3 (Planned)
-- [ ] Real-time crawl progress via WebSockets
-- [ ] Competitor analysis
-- [ ] Historical trend tracking
-- [ ] White-label support
-- [ ] Slack/Discord integrations
-
-### Phase 4 (Future)
-- [ ] Kubernetes deployment (Helm charts)
+### Phase 4 (Planned)
+- [ ] AI SEO Copilot — natural language queries over crawl data
+- [ ] Competitor analysis — side-by-side crawl comparisons
+- [ ] Historical trend tracking — SEO health over time
+- [ ] White-label support — custom branding per client
+- [ ] Slack/Discord integrations — crawl alerts
 - [ ] Multi-region crawling
 - [ ] Enterprise SSO (SAML/OIDC)
 - [ ] Billing & subscriptions

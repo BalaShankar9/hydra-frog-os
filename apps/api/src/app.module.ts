@@ -1,4 +1,5 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { RequestIdMiddleware } from './middleware/request-id.middleware';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
@@ -18,6 +19,7 @@ import { PerfModule } from './perf';
 import { FixesModule } from './fixes';
 import { StudioModule } from './studio';
 import { FlagModule } from './studio/flags';
+import { AppCacheModule } from './cache';
 
 @Module({
   imports: [
@@ -38,6 +40,7 @@ import { FlagModule } from './studio/flags';
       },
     ]),
     PrismaModule,
+    AppCacheModule,
     QueueModule,
     AuthModule,
     OrgModule,
@@ -61,4 +64,8 @@ import { FlagModule } from './studio/flags';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestIdMiddleware).forRoutes('*');
+  }
+}

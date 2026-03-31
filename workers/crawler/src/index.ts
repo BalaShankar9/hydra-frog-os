@@ -5,6 +5,7 @@ import { logger } from './logger.js';
 import { runCrawl } from './crawl/crawl-runner.js';
 import { computeCrawlDiff } from './diff/computeCrawlDiff.js';
 import { enqueueRenderJobs, closeRenderQueue } from './render/index.js';
+import { startHealthServer } from '@hydra-frog-os/shared/health/index.js';
 
 // Queue and job types
 const QUEUE_NAME = 'crawl-jobs';
@@ -312,9 +313,31 @@ worker.on('error', (error) => {
   logger.error('Worker error', { error: error.message });
 });
 
-// Graceful shutdown
+// Health check server
+let isWorkerReady = false;
+const healthPort = parseInt(process.env.HEALTH_PORT || '8080', 10);
+startHealthServer({
+  port: healthPort,
+  service: 'crawler',
+  isReady: () => isWorkerReady,
+});
+
+worker.on('ready', () => {
+  isWorkerReady = true;
+});
+
+// Graceful shutdown with job drain
+let isShuttingDown = false;
+
 async function shutdown(signal: string): Promise<void> {
-  logger.info('Received shutdown signal', { signal });
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  isWorkerReady = false;
+  logger.info('Received shutdown signal, draining active jobs...', { signal });
+
+  // Pause the worker to stop accepting new jobs, then close
+  await worker.pause();
+  logger.info('Worker paused, waiting for active jobs to finish...');
 
   await worker.close();
   await closeRenderQueue();

@@ -18,6 +18,7 @@ import {
   type RenderJobData,
   type RenderResult,
 } from './render/index.js';
+import { startHealthServer } from '@hydra-frog-os/shared/health/index.js';
 
 // Get directory name for ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -181,10 +182,22 @@ async function startWorker(): Promise<void> {
     console.log(`[Renderer] Worker ready, listening on queue: ${QUEUE_NAME}`);
   });
 
-  // Graceful shutdown
-  const shutdown = async (signal: string): Promise<void> => {
-    console.log(`[Renderer] Received ${signal}, shutting down...`);
+  // Health check server
+  let isReady = false;
+  const healthPort = parseInt(process.env.HEALTH_PORT || '8081', 10);
+  startHealthServer({ port: healthPort, service: 'renderer', isReady: () => isReady });
 
+  worker.on('ready', () => { isReady = true; });
+
+  // Graceful shutdown with drain
+  let isShuttingDown = false;
+  const shutdown = async (signal: string): Promise<void> => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    isReady = false;
+    console.log(`[Renderer] Received ${signal}, draining active jobs...`);
+
+    await worker.pause();
     await worker.close();
     console.log('[Renderer] Worker closed');
 
