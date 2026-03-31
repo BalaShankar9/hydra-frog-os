@@ -38,3 +38,5 @@ export {
   DiffItemsTable,
   ChangesTab,
 } from './DiffView';
+export { ErrorBoundary } from './ErrorBoundary';
+export { Breadcrumbs } from './Breadcrumbs';

@@ -14,7 +14,15 @@ import { JwtStrategy } from './jwt.strategy';
       useFactory: (configService: ConfigService): JwtModuleOptions => {
         const expiresIn = configService.get<string>('JWT_EXPIRES_IN') || '1d';
         return {
-          secret: configService.get<string>('JWT_SECRET') || 'fallback_secret',
+          secret: (() => {
+            const secret = configService.get<string>('JWT_SECRET');
+            if (!secret) {
+              throw new Error(
+                'JWT_SECRET environment variable is required. Set it in your .env file.',
+              );
+            }
+            return secret;
+          })(),
           signOptions: {
             expiresIn: expiresIn as any,
           },

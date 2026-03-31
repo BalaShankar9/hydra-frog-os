@@ -10,7 +10,7 @@ export default function Home() {
   useEffect(() => {
     // Redirect to appropriate page based on auth status
     if (isAuthed()) {
-      router.replace('/projects');
+      router.replace('/dashboard');
     } else {
       router.replace('/login');
     }

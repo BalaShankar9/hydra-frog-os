@@ -61,7 +61,15 @@ async function seedFeatureFlags() {
 async function main() {
   console.info('Seeding database...');
 
-  // Create demo user
+  // Demo user — only seeded in development
+  if (process.env.NODE_ENV === 'production') {
+    console.info('Skipping demo user creation in production environment');
+    await seedFeatureFlags();
+    console.info('Seeding completed successfully!');
+    return;
+  }
+
+  // Create demo user (development only)
   // Password: password123
   const demoUser = await prisma.user.upsert({
     where: { email: 'demo@hydra.local' },
