@@ -26,8 +26,8 @@ const PLANS = [
   },
   {
     name: 'Starter',
-    price: '$0',
-    period: 'with account',
+    price: '$8.99',
+    period: '/month',
     description: 'For individuals and growing sites',
     features: [
       { text: 'Unlimited crawls', included: true },
