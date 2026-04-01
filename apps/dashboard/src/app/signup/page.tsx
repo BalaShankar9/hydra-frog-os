@@ -56,7 +56,7 @@ export default function SignupPage() {
           <Link href="/" className="inline-block">
             <h1 className="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">HydraFrog</h1>
           </Link>
-          <p className="text-gray-600 dark:text-gray-400">Start crawling for free</p>
+          <p className="text-gray-600 dark:text-gray-400">Create your account</p>
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-8">
@@ -134,14 +134,14 @@ export default function SignupPage() {
                   Creating account...
                 </span>
               ) : (
-                'Create free account'
+                'Create account'
               )}
             </button>
           </form>
 
           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800 text-center">
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              What you get for free:
+              What you get:
             </p>
             <ul className="mt-2 text-xs text-gray-500 dark:text-gray-400 space-y-1">
               <li>Up to 1,000 pages per crawl</li>

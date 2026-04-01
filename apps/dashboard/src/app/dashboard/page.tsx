@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Protected } from '@/components/Protected';
 import { AppShell } from '@/components/AppShell';
 import { apiFetch, orgsApi, projectsApi } from '@/lib/api';
+import { isDemoMode, DEMO_ORGS, DEMO_PROJECTS, DEMO_CRAWL_RUNS, DEMO_STATS } from '@/lib/demo';
 
 interface ProjectSummary {
   id: string;
@@ -33,6 +34,19 @@ function DashboardContent() {
   const [orgName, setOrgName] = useState('');
 
   useEffect(() => {
+    // Demo mode — show mock data immediately
+    if (isDemoMode()) {
+      setOrgName(DEMO_ORGS[0].name);
+      const demoProjectsWithCrawls: ProjectSummary[] = DEMO_PROJECTS.map((proj) => {
+        const crawl = DEMO_CRAWL_RUNS.find((r) => r.projectId === proj.id);
+        return { id: proj.id, name: proj.name, domain: proj.domain, lastCrawl: crawl };
+      });
+      setProjects(demoProjectsWithCrawls);
+      setStats(DEMO_STATS);
+      setIsLoading(false);
+      return;
+    }
+
     const fetchDashboard = async () => {
       try {
         const [orgs, projectList] = await Promise.all([

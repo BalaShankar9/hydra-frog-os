@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { isAuthed } from '@/lib/auth';
+import { enterDemoMode } from '@/lib/demo';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -29,12 +30,12 @@ export default function LandingPage() {
             >
               Sign in
             </Link>
-            <Link
-              href="/signup"
+            <button
+              onClick={() => { enterDemoMode(); router.push('/dashboard'); }}
               className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors"
             >
-              Try free
-            </Link>
+              Try it
+            </button>
           </div>
         </div>
       </nav>
@@ -61,12 +62,12 @@ export default function LandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/signup"
+            <button
+              onClick={() => { enterDemoMode(); router.push('/dashboard'); }}
               className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold bg-blue-600 hover:bg-blue-500 rounded-xl transition-all hover:shadow-lg hover:shadow-blue-500/25"
             >
-              Start free &mdash; no credit card
-            </Link>
+              Try it now
+            </button>
             <a
               href="https://github.com/BalaShankar9/hydra-frog-os"
               target="_blank"
@@ -79,7 +80,7 @@ export default function LandingPage() {
           </div>
 
           <p className="mt-6 text-sm text-gray-500">
-            1,000 pages free &middot; AI Copilot included &middot; No setup required
+            No signup required &middot; Explore the full dashboard instantly
           </p>
         </div>
       </section>
@@ -199,14 +200,14 @@ export default function LandingPage() {
       <section className="max-w-3xl mx-auto px-6 py-24 text-center">
         <h2 className="text-3xl sm:text-4xl font-bold mb-4">Ready to find what&apos;s broken?</h2>
         <p className="text-gray-400 text-lg mb-10 max-w-xl mx-auto">
-          Create a free account in 10 seconds. No credit card. No setup. Just paste your URL and start crawling.
+          No signup. No setup. Just click and explore the full platform with demo data.
         </p>
-        <Link
-          href="/signup"
-          className="inline-block px-10 py-4 text-lg font-semibold bg-blue-600 hover:bg-blue-500 rounded-xl transition-all hover:shadow-lg hover:shadow-blue-500/25"
+        <button
+          onClick={() => { enterDemoMode(); router.push('/dashboard'); }}
+          className="inline-block px-10 py-4 text-lg font-semibold bg-blue-600 hover:bg-blue-500 rounded-xl transition-all hover:shadow-lg hover:shadow-blue-500/25 cursor-pointer"
         >
-          Start free
-        </Link>
+          Try it now
+        </button>
       </section>
 
       {/* Footer */}
