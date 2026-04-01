@@ -240,19 +240,32 @@ function extractErrorMessage(data: unknown, status: number): string {
  */
 export const authApi = {
   login: (email: string, password: string) =>
-    apiFetch<{ accessToken: string; user: { id: string; email: string } }>('/auth/login', {
+    apiFetch<{ accessToken: string; user: { id: string; email: string; tier: string } }>('/auth/login', {
       method: 'POST',
       body: { email, password },
     }),
-    
+
   signup: (email: string, password: string) =>
-    apiFetch<{ accessToken: string; user: { id: string; email: string } }>('/auth/signup', {
+    apiFetch<{ accessToken: string; user: { id: string; email: string; tier: string } }>('/auth/signup', {
       method: 'POST',
       body: { email, password },
     }),
-    
+
+  guest: () =>
+    apiFetch<{ accessToken: string; user: { id: string; email: string; tier: string } }>('/auth/guest', {
+      method: 'POST',
+    }),
+
   me: () =>
-    apiFetch<{ id: string; email: string; createdAt: string }>('/auth/me'),
+    apiFetch<{
+      id: string;
+      email: string;
+      tier: string;
+      crawlsUsed: number;
+      createdAt: string;
+      limits: { crawlsAllowed: number; crawlsRemaining: number; pagesPerCrawl: number };
+      orgMembers: Array<{ role: string; org: { id: string; name: string } }>;
+    }>('/auth/me'),
 };
 
 /**

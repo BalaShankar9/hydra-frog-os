@@ -8,7 +8,6 @@ import { authApi } from '@/lib/api';
 import { useFlagContext } from './FlagProvider';
 import { useTheme } from './ThemeProvider';
 import { FLAG_KEYS } from '@/lib/flags';
-import { isDemoMode, exitDemoMode, DEMO_USER } from '@/lib/demo';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -32,17 +31,10 @@ export function AppShell({ children }: AppShellProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [demo, setDemo] = useState(false);
   const { isEnabled } = useFlagContext();
   const { resolved, toggle } = useTheme();
 
   useEffect(() => {
-    if (isDemoMode()) {
-      setUser({ id: DEMO_USER.id, email: DEMO_USER.email });
-      setDemo(true);
-      setIsLoading(false);
-      return;
-    }
     const fetchUser = async () => {
       try {
         const userData = await authApi.me();
@@ -57,7 +49,6 @@ export function AppShell({ children }: AppShellProps) {
   }, []);
 
   const handleLogout = () => {
-    exitDemoMode();
     clearToken();
     router.push('/');
   };
@@ -195,12 +186,6 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </header>
 
-        {demo && (
-          <div className="bg-blue-600 text-white text-center text-sm py-2 px-4">
-            You&apos;re exploring in demo mode.{' '}
-            <a href="/signup" className="underline font-medium">Create an account</a> to crawl your own site.
-          </div>
-        )}
         <main className="p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>

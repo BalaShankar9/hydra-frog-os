@@ -42,6 +42,13 @@ enum ScheduleFrequency {
   MANUAL
 }
 
+enum UserTier {
+  GUEST
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
 // Phase 2B: Crawl Diff enums
 enum DiffType {
   NEW_URL
@@ -163,7 +170,11 @@ model User {
   email        String      @unique
   passwordHash String
   createdAt    DateTime    @default(now())
-  
+
+  // Usage tier
+  tier         UserTier    @default(GUEST)
+  crawlsUsed   Int         @default(0)
+
   // Relations
   orgMembers   OrgMember[]
 }

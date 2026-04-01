@@ -36,9 +36,8 @@ export function clearToken(): void {
 }
 
 /**
- * Check if the user is authenticated (or in demo mode)
+ * Check if the user is authenticated
  */
 export function isAuthed(): boolean {
-  if (!isBrowser()) return false;
-  return !!getToken() || localStorage.getItem('hydra_demo') === 'true';
+  return !!getToken();
 }

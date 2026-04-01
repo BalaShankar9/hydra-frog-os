@@ -24,6 +24,14 @@ import { CurrentUser, CurrentUserPayload } from './decorators';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Post('guest')
+  @Throttle({ short: { limit: 3, ttl: 60000 } })
+  @ApiOperation({ summary: 'Create a guest account instantly (no email/password)' })
+  @ApiResponse({ status: 201, description: 'Guest account created' })
+  async guest() {
+    return this.authService.createGuest();
+  }
+
   @Post('signup')
   @Throttle({ short: { limit: 3, ttl: 60000 } })
   @ApiOperation({ summary: 'Create a new user account' })
