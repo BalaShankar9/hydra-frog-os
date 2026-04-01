@@ -2,6 +2,7 @@
 
 import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { setToken, isAuthed } from '@/lib/auth';
 import { authApi, ApiError } from '@/lib/api';
 
@@ -48,7 +49,9 @@ export default function LoginPage() {
       <div className="max-w-md w-full">
         {/* Logo and title */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">HydraFrog</h1>
+          <Link href="/" className="inline-block">
+            <h1 className="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">HydraFrog</h1>
+          </Link>
           <p className="text-gray-600 dark:text-gray-400">Sign in to your account</p>
         </div>
 
@@ -140,7 +143,9 @@ export default function LoginPage() {
         {/* Footer text */}
         <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
           Don&apos;t have an account?{' '}
-          <span className="text-blue-600 dark:text-blue-400">Contact your administrator</span>
+          <Link href="/signup" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+            Create one free
+          </Link>
         </p>
       </div>
     </div>

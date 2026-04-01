@@ -29,11 +29,37 @@ export class AuthService {
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(dto.password, saltRounds);
 
-    // Create user
+    // Create user with a default org and sample project (try-free onboarding)
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
         passwordHash,
+      },
+    });
+
+    // Auto-create org + membership + sample project
+    const orgName = dto.email.split('@')[0] + "'s Organization";
+    const org = await this.prisma.org.create({
+      data: {
+        name: orgName,
+        members: {
+          create: {
+            userId: user.id,
+            role: 'ADMIN',
+          },
+        },
+        projects: {
+          create: {
+            name: 'My First Project',
+            domain: 'example.com',
+            startUrl: 'https://example.com',
+            settingsJson: {
+              maxPages: 100,
+              crawlDelay: 1000,
+              respectRobotsTxt: true,
+            },
+          },
+        },
       },
     });
 
@@ -46,6 +72,10 @@ export class AuthService {
         id: user.id,
         email: user.email,
         createdAt: user.createdAt,
+      },
+      org: {
+        id: org.id,
+        name: org.name,
       },
     };
   }
