@@ -35,6 +35,12 @@ export function AppShell({ children }: AppShellProps) {
   const { resolved, toggle } = useTheme();
 
   useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('hydra_token') : null;
+    if (token === 'guest') {
+      setUser({ id: 'guest', email: 'Guest' });
+      setIsLoading(false);
+      return;
+    }
     const fetchUser = async () => {
       try {
         const userData = await authApi.me();
