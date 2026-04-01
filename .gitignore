@@ -37,3 +37,4 @@ pnpm-debug.log*
 # TypeScript
 *.tsbuildinfo
 apps/api/supabase
+.vercel

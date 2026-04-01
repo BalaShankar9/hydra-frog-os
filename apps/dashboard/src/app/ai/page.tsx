@@ -144,7 +144,7 @@ function AiCopilotContent() {
               <div className="text-5xl mb-4">🤖</div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Ask me anything about your SEO data</h3>
               <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 max-w-md">
-                I can analyze your crawl results, find issues, suggest fixes, and answer questions about your website's SEO health.
+                I can analyze your crawl results, find issues, suggest fixes, and answer questions about your website&apos;s SEO health.
               </p>
               {selectedProject && selectedCrawlRun && (
                 <div className="flex flex-wrap gap-2 max-w-lg justify-center">

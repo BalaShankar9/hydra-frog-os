@@ -1040,7 +1040,7 @@ function RenderedTab({ runId }: { runId: string }) {
           <div className="text-4xl mb-3">🖼️</div>
           <div className="text-gray-600 mb-1">No pages have been rendered yet</div>
           <div className="text-sm text-gray-400">
-            Pages will be rendered based on the project's render mode setting
+            Pages will be rendered based on the project&apos;s render mode setting
           </div>
         </div>
       )}

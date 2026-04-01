@@ -14,7 +14,7 @@
 [![Vercel](https://img.shields.io/badge/Vercel-Dashboard-000000?logo=vercel&logoColor=white)](https://vercel.com/)
 [![Groq](https://img.shields.io/badge/Groq-AI_Copilot-F55036?logo=groq&logoColor=white)](https://groq.com/)
 
-[Features](#features) | [Quick Start](#quick-start) | [Architecture](#architecture) | [AI Copilot](#ai-seo-copilot) | [Deploy](#deployment)
+[Live Demo](https://hydra-frog-os.vercel.app) | [Features](#features) | [Quick Start](#quick-start) | [Architecture](#architecture) | [AI Copilot](#ai-seo-copilot) | [Deploy](#deployment)
 
 </div>
 

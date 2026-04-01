@@ -34,24 +34,22 @@ async function seedFeatureFlags() {
   console.info('Seeding feature flags...');
   
   for (const flag of DEFAULT_FLAGS) {
-    await prisma.featureFlag.upsert({
+    // Check if flag already exists
+    const existing = await prisma.featureFlag.findFirst({
       where: {
-        key_scope_orgId_projectId: {
-          key: flag.key,
-          scope: FeatureFlagScope.GLOBAL,
-          orgId: null,
-          projectId: null,
-        },
-      },
-      update: {},
-      create: {
         key: flag.key,
-        enabled: flag.enabled,
         scope: FeatureFlagScope.GLOBAL,
-        orgId: null,
-        projectId: null,
       },
     });
+    if (!existing) {
+      await prisma.featureFlag.create({
+        data: {
+          key: flag.key,
+          enabled: flag.enabled,
+          scope: FeatureFlagScope.GLOBAL,
+        },
+      });
+    }
     console.info(`  - ${flag.key}: ${flag.enabled ? 'enabled' : 'disabled'}`);
   }
   
