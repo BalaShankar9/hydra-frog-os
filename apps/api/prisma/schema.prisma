@@ -172,7 +172,13 @@ model Org {
   id        String      @id @default(cuid())
   name      String
   createdAt DateTime    @default(now())
-  
+
+  // White-label branding (Phase 4)
+  brandName      String?    // Custom brand name (replaces "HydraFrog" in UI)
+  brandLogoUrl   String?    // URL to custom logo image
+  brandColor     String?    // Primary brand color (hex, e.g. "#2563eb")
+  brandDomain    String?    // Custom subdomain (e.g. "acme" → acme.hydrafrog.io)
+
   // Relations
   members        OrgMember[]
   projects       Project[]

@@ -304,12 +304,17 @@ All workers expose HTTP health endpoints:
 
 ## Roadmap
 
-### Phase 4 (Planned)
-- [ ] AI SEO Copilot — natural language queries over crawl data
-- [ ] Competitor analysis — side-by-side crawl comparisons
+### Completed
+- [x] Phase 1: Core crawler, dashboard, auth, multi-tenant
+- [x] Phase 2: Diffs, templates, rendering, perf, fixes, studio, tools
+- [x] Phase 3: Dark mode, sortable tables, CSV export, real-time progress, a11y
+- [x] Phase 4: Enterprise infra (Docker, K8s, health checks, caching)
+- [x] Phase 5: AI Copilot (Groq), competitor analysis, white-label branding
+
+### Future
 - [ ] Historical trend tracking — SEO health over time
-- [ ] White-label support — custom branding per client
 - [ ] Slack/Discord integrations — crawl alerts
+- [ ] PDF report generation — branded audit reports
 - [ ] Multi-region crawling
 - [ ] Enterprise SSO (SAML/OIDC)
 - [ ] Billing & subscriptions

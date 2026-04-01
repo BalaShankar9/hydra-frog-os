@@ -57,6 +57,8 @@ export function AppShell({ children }: AppShellProps) {
     { name: 'Dashboard', href: '/dashboard', icon: DashboardIcon },
     { name: 'Projects', href: '/projects', icon: FolderIcon },
     { name: 'Studio', href: '/studio', icon: SparklesIcon, flag: FLAG_KEYS.STUDIO_ENABLED },
+    { name: 'AI Copilot', href: '/ai', icon: AiIcon },
+    { name: 'Competitors', href: '/competitors', icon: CompareIcon },
     { name: 'Tools', href: '/tools', icon: ToolboxIcon },
     { name: 'Templates', href: '/templates', icon: LayoutIcon, flag: FLAG_KEYS.TOOLS_TEMPLATES_V2 },
     { name: 'Diff Insights', href: '/diffs', icon: DiffIcon, flag: FLAG_KEYS.TOOLS_DIFF_INSIGHTS },
@@ -287,6 +289,22 @@ function MoonIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+    </svg>
+  );
+}
+
+function AiIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 00.659 1.591L19 14.5M14.25 3.104c.251.023.501.05.75.082M19 14.5l-1.5 4.5H6.5L5 14.5m14 0H5" />
+    </svg>
+  );
+}
+
+function CompareIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
     </svg>
   );
 }

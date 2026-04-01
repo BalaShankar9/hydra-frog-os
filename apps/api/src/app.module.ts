@@ -20,6 +20,8 @@ import { FixesModule } from './fixes';
 import { StudioModule } from './studio';
 import { FlagModule } from './studio/flags';
 import { AppCacheModule } from './cache';
+import { AiModule } from './ai';
+import { CompetitorModule } from './competitor';
 
 @Module({
   imports: [
@@ -53,6 +55,8 @@ import { AppCacheModule } from './cache';
     FixesModule,
     StudioModule,
     FlagModule,
+    AiModule,
+    CompetitorModule,
     HealthModule,
   ],
   controllers: [AppController],
