@@ -1,33 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { isAuthed, setToken } from '@/lib/auth';
-import { authApi } from '@/lib/api';
+import { isAuthed } from '@/lib/auth';
 
 export default function LandingPage() {
   const router = useRouter();
-
-  const [isStarting, setIsStarting] = useState(false);
 
   useEffect(() => {
     if (isAuthed()) {
       router.replace('/dashboard');
     }
   }, [router]);
-
-  const handleTryIt = async () => {
-    setIsStarting(true);
-    try {
-      const res = await authApi.guest();
-      setToken(res.accessToken);
-      router.push('/dashboard');
-    } catch {
-      // If API is not connected, go to signup
-      router.push('/signup');
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-950 text-white overflow-hidden">
@@ -50,12 +35,12 @@ export default function LandingPage() {
             >
               Sign in
             </Link>
-            <button
-              onClick={handleTryIt} disabled={isStarting}
-              className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors disabled:opacity-70"
+            <Link
+              href="/signup"
+              className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors"
             >
-              {isStarting ? 'Starting...' : 'Try it'}
-            </button>
+              Get started
+            </Link>
           </div>
         </div>
       </nav>
@@ -82,12 +67,12 @@ export default function LandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
-              onClick={handleTryIt} disabled={isStarting}
-              className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold bg-blue-600 hover:bg-blue-500 rounded-xl transition-all hover:shadow-lg hover:shadow-blue-500/25 disabled:opacity-70"
+            <Link
+              href="/signup"
+              className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold bg-blue-600 hover:bg-blue-500 rounded-xl transition-all hover:shadow-lg hover:shadow-blue-500/25 text-center"
             >
-              {isStarting ? 'Setting up...' : 'Try it now'}
-            </button>
+              Get started
+            </Link>
             <a
               href="https://github.com/BalaShankar9/hydra-frog-os"
               target="_blank"
@@ -222,12 +207,12 @@ export default function LandingPage() {
         <p className="text-gray-400 text-lg mb-10 max-w-xl mx-auto">
           No setup needed. Click and start crawling your site in seconds.
         </p>
-        <button
-          onClick={handleTryIt} disabled={isStarting}
-          className="inline-block px-10 py-4 text-lg font-semibold bg-blue-600 hover:bg-blue-500 rounded-xl transition-all hover:shadow-lg hover:shadow-blue-500/25 cursor-pointer disabled:opacity-70"
+        <Link
+          href="/signup"
+          className="inline-block px-10 py-4 text-lg font-semibold bg-blue-600 hover:bg-blue-500 rounded-xl transition-all hover:shadow-lg hover:shadow-blue-500/25"
         >
-          {isStarting ? 'Setting up...' : 'Try it now'}
-        </button>
+          Get started
+        </Link>
       </section>
 
       {/* Footer */}
