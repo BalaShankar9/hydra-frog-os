@@ -11,10 +11,10 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-# Generate Prisma client and build API (skip type errors for shared package refs)
+# Build shared package first, then API
+RUN cd packages/shared && npx tsc --skipLibCheck
 RUN cd apps/api && npx prisma generate
-RUN cd apps/api && npx tsc --skipLibCheck --noEmitOnError false -p tsconfig.json || true
-RUN test -f apps/api/dist/main.js && echo "Build successful" || exit 1
+RUN cd apps/api && npx tsc --skipLibCheck -p tsconfig.json
 
 ENV NODE_ENV=production
 ENV API_PORT=3001

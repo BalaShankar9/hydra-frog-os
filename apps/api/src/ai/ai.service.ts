@@ -99,7 +99,7 @@ If the question cannot be answered from the available data, say so clearly.`;
     const [crawlRun, pageStats, topIssues, samplePages] = await Promise.all([
       this.prisma.crawlRun.findUnique({
         where: { id: crawlRunId },
-        select: { status: true, totalPages: true, totalIssues: true, startedAt: true, finishedAt: true, totalsJson: true },
+        select: { status: true, startedAt: true, finishedAt: true, totalsJson: true },
       }),
       this.prisma.page.groupBy({
         by: ['statusCode'],
@@ -125,10 +125,11 @@ If the question cannot be answered from the available data, say so clearly.`;
     const parts: string[] = [];
 
     if (crawlRun) {
+      const totals = (crawlRun.totalsJson as Record<string, unknown>) || {};
       parts.push(`## Crawl Summary
 - Status: ${crawlRun.status}
-- Total Pages: ${crawlRun.totalPages}
-- Total Issues: ${crawlRun.totalIssues}
+- Total Pages: ${totals.totalPages ?? 'N/A'}
+- Total Issues: ${totals.totalIssues ?? 'N/A'}
 - Started: ${crawlRun.startedAt}
 - Finished: ${crawlRun.finishedAt}`);
     }

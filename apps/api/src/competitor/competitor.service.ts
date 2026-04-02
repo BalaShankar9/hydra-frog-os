@@ -129,7 +129,7 @@ export class CompetitorService {
       this.prisma.project.findUnique({ where: { id: projectId }, select: { domain: true } }),
       this.prisma.crawlRun.findUnique({
         where: { id: crawlRunId },
-        select: { totalPages: true, totalIssues: true },
+        select: { totalsJson: true },
       }),
       this.prisma.page.findMany({
         where: { crawlRunId },
@@ -162,11 +162,13 @@ export class CompetitorService {
       severityDist[i.severity] = i._count;
     }
 
+    const totals = (crawlRun?.totalsJson as Record<string, number>) || {};
+
     return {
       domain: project?.domain || 'unknown',
       crawlRunId,
-      totalPages: crawlRun?.totalPages || pages.length,
-      totalIssues: crawlRun?.totalIssues || 0,
+      totalPages: totals.totalPages || pages.length,
+      totalIssues: totals.totalIssues || 0,
       avgWordCount: wordCountPages > 0 ? Math.round(totalWords / wordCountPages) : 0,
       pagesWithH1,
       pagesWithCanonical,
