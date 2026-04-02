@@ -39,5 +39,6 @@ export function clearToken(): void {
  * Check if the user is authenticated
  */
 export function isAuthed(): boolean {
-  return !!getToken();
+  const token = getToken();
+  return !!token && token !== 'guest';
 }

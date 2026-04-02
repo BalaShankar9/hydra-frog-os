@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { isAuthed, setToken } from '@/lib/auth';
+import { isAuthed } from '@/lib/auth';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -13,11 +13,6 @@ export default function LandingPage() {
       router.replace('/dashboard');
     }
   }, [router]);
-
-  const handleTryIt = () => {
-    setToken('guest');
-    router.push('/dashboard');
-  };
 
   return (
     <div className="min-h-screen bg-gray-950 text-white overflow-hidden">
@@ -40,12 +35,12 @@ export default function LandingPage() {
             >
               Sign in
             </Link>
-            <button
-              onClick={handleTryIt}
+            <Link
+              href="/signup"
               className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors"
             >
               Try it
-            </button>
+            </Link>
           </div>
         </div>
       </nav>
@@ -72,12 +67,12 @@ export default function LandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
-              onClick={handleTryIt}
-              className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold bg-blue-600 hover:bg-blue-500 rounded-xl transition-all hover:shadow-lg hover:shadow-blue-500/25"
+            <Link
+              href="/signup"
+              className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold bg-blue-600 hover:bg-blue-500 rounded-xl transition-all hover:shadow-lg hover:shadow-blue-500/25 text-center"
             >
               Try it now
-            </button>
+            </Link>
             <a
               href="https://github.com/BalaShankar9/hydra-frog-os"
               target="_blank"
@@ -212,12 +207,12 @@ export default function LandingPage() {
         <p className="text-gray-400 text-lg mb-10 max-w-xl mx-auto">
           No setup needed. Click and start crawling your site in seconds.
         </p>
-        <button
-          onClick={handleTryIt}
-          className="inline-block px-10 py-4 text-lg font-semibold bg-blue-600 hover:bg-blue-500 rounded-xl transition-all hover:shadow-lg hover:shadow-blue-500/25 cursor-pointer"
+        <Link
+          href="/signup"
+          className="inline-block px-10 py-4 text-lg font-semibold bg-blue-600 hover:bg-blue-500 rounded-xl transition-all hover:shadow-lg hover:shadow-blue-500/25"
         >
           Try it now
-        </button>
+        </Link>
       </section>
 
       {/* Footer */}
