@@ -13,7 +13,7 @@ import {
   applySeoHealthDashboardRules,
   generateSeoHealthDashboardOutput,
   RawIssueData,
-} from '@hydra-frog/shared/tools/seo-health-dashboard/rules';
+} from '../../../../packages/shared/src/tools/seo-health-dashboard/rules';
 
 @Injectable()
 export class SeoHealthDashboardService {
@@ -87,13 +87,12 @@ export class SeoHealthDashboardService {
     }
   }
 
-  async getHistory(userId: string, projectId: string, limit: number) {
+  async getHistory(userId: string, projectId: string, _limit: number) {
     await this.verifyAccess(userId, projectId);
-    // History requires a ToolExecution model — return empty for now
     return [];
   }
 
-  async getResult(userId: string, executionId: string) {
+  async getResult(_userId: string, _executionId: string) {
     throw new NotFoundException('Execution not found');
   }
 

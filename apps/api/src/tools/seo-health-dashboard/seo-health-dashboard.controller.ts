@@ -26,7 +26,12 @@ import {
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { SeoHealthDashboardService } from './seo-health-dashboard.service';
-import { SeoHealthDashboardInput } from '@hydra-frog/shared/tools/seo-health-dashboard/rules';
+interface SeoHealthDashboardInput {
+  projectId: string;
+  crawlRunId: string;
+  minSeverity?: string;
+  includeWarnings?: boolean;
+}
 
 @ApiTags('tools/seo-health-dashboard')
 @ApiBearerAuth()

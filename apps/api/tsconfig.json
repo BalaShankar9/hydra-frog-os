@@ -10,6 +10,8 @@
     "experimentalDecorators": true,
     "skipLibCheck": true,
     "noEmitOnError": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "paths": {
       "@/*": ["./src/*"]
     }
